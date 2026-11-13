@@ -14,7 +14,7 @@ Objetivo: comprobar con datos reales que el proyecto es viable en tu Pi 5 y con 
 | 0.B Cobertura de bancos | ¿Cubre mis bancos españoles y cuánto histórico? | API | Yo, tras 0.A |
 | 0.C LLM en la Pi | ¿Cabe y es lo bastante rápido y preciso? | Pi | Tú (instalar), yo (scripts) |
 | 0.D Dataset de preguntas | ¿Cómo medimos la precisión? | Repo | Yo, tú lo revisas |
-| 0.E Baileys eco 48 h | ¿Aguanta WhatsApp sin cortes ni baneo? | Pi | Tú (QR), yo (script) |
+| 0.E Chat web mínimo | ¿Puedo preguntar desde el móvil, solo por la tailnet y con credencial propia? | Pi | Tú (probar), yo (código) |
 | 0.F Informe | ¿Pasamos o recortamos ambición? | `docs/` | Yo, con tus mediciones |
 
 Orden recomendado: **0.A → 0.B** (decide si el proyecto es posible), en paralelo **0.D** (no depende de nada), después **0.C** y **0.E** en la Pi.
@@ -78,10 +78,12 @@ Decisión tuya antes de empezar 0.A: ¿la autorización se hará desde tu PC (op
 ## 0.D Dataset de preguntas (puedo empezarlo sin tocar nada técnico)
 ~40 preguntas en español con su JSON esperado: cantidades, listas, saldos, comparaciones, comercios, recurrentes, fechas relativas y ambiguas. Datos **sintéticos**. Tú revisas, y añades 10–15 preguntas tuyas reales sin cifras sensibles.
 
-## 0.E Baileys eco 48 h
-- Número de WhatsApp secundario y dedicado; versión **exacta fijada** del paquete oficial, nada de forks.
-- Bot que solo repite lo que le escribe tu número (lista blanca). Registro de desconexiones y reconexiones.
-- Tú escaneas un QR una vez. Se mide: cortes, mensajes perdidos, reinicio de la Pi sin QR nuevo.
+## 0.E Chat web mínimo
+- Servicio nuevo, separado de la API del hub, escuchando solo en `127.0.0.1` y publicado con `tailscale serve` en un puerto libre (por ejemplo 8443). Sin Funnel.
+- Sirve su propia página: el código que toca datos bancarios no viene de Vercel. El hub solo enlaza a ella.
+- Credencial propia (token); estar en la tailnet no basta.
+- En Fase 0 solo repite lo que escribes. Mide: acceso desde el móvil, rechazo sin credencial, reinicio de la Pi sin intervención.
+- WhatsApp/Baileys queda aparcado; el núcleo mantiene una interfaz de canal por si se retoma.
 
 ## 0.F Informe
 `docs/FASE0_INFORME.md` con las tablas de métricas rellenas, el modelo elegido y la decisión: pasamos, o bajamos ambición (más reglas, LLM solo de respaldo).
@@ -90,9 +92,13 @@ Decisión tuya antes de empezar 0.A: ¿la autorización se hará desde tu PC (op
 
 ## Estado
 - [x] `AGENTS.md` propio creado
-- [ ] 0.A cuenta y aplicación sandbox
-- [ ] 0.B lista de bancos y cobertura
-- [ ] 0.D dataset de preguntas
-- [ ] 0.C benchmark en la Pi
-- [ ] 0.E Baileys eco 48 h
-- [ ] 0.F informe
+- [x] 0.A cuenta y aplicación sandbox (M2, M3)
+- [x] 0.B lista de bancos y cobertura (M4: Santander cubierto)
+- [x] Aplicación de producción registrada y activada con una cuenta vinculada
+- [ ] 0.A2 ensayo del flujo de autorización en sandbox (M5a)
+- [ ] 0.A3 autorización real de Santander e importación en bruto (M5b)
+- [ ] 0.D dataset de preguntas (M6)
+- [ ] 0.C benchmark en la Pi (M7–M9)
+- [ ] Contrato de la API del chat y servidor simulado (M10a)
+- [ ] 0.E chat web mínimo (M10b)
+- [ ] 0.F informe (M12)

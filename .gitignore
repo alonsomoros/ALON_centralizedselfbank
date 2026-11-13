@@ -6,6 +6,10 @@
 auth_info*/
 .selfbank/
 
+# Python
+__pycache__/
+*.pyc
+
 # Node
 node_modules/
 dist/
