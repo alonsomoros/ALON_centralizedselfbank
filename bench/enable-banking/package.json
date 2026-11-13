@@ -1,0 +1,6 @@
+{
+  "name": "selfbank-enable-banking-bench",
+  "private": true,
+  "type": "module",
+  "description": "Scripts de Fase 0 para probar la API de Enable Banking sin dependencias."
+}

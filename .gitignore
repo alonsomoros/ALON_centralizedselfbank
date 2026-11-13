@@ -10,6 +10,9 @@ auth_info*/
 node_modules/
 dist/
 
+# Salidas de scripts de bench
+bench/**/out/
+
 # Datos locales
 *.db
 *.sqlite
