@@ -1,0 +1,16 @@
+# Secretos
+*.pem
+*.key
+.env
+.env.*
+auth_info*/
+.selfbank/
+
+# Node
+node_modules/
+dist/
+
+# Datos locales
+*.db
+*.sqlite
+metrics*.csv
