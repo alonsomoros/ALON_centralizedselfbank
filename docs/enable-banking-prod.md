@@ -10,6 +10,10 @@
 | Clave privada | en la Pi, `~/.selfbank/selfbank-prod.pem`, permisos 600, nunca sale de ella |
 | Certificado | autofirmado, generado en la Pi a partir de esa clave. El formulario pide certificado X.509 en PEM, no la clave pública suelta |
 
+## Catálogo con la aplicación inactiva
+
+`GET /aspsps?country=ES` firmado desde la Pi devuelve `403 {"message":"Application is not active"}`. La firma es válida (el `kid` fue aceptado): el catálogo de producción exige activar la aplicación vinculando una cuenta.
+
 ## Autorización con la redirect URL
 
 Con `https://localhost:8765/callback` no hay servidor escuchando: el navegador mostrará un error de conexión, pero la dirección con `?code=…` queda visible en la barra. Se copia esa URL completa y se pasa al script de autorización. El `code` es de un solo uso y no se pega en chats ni en logs.
