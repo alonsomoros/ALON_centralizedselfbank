@@ -2,7 +2,7 @@
 
 Objetivo: comprobar con datos reales que el proyecto es viable en tu Pi 5 y con tus bancos, antes de escribir la aplicación. Nada de esta fase queda en producción: es medir y decidir.
 
-**Criterio de paso**: intent correcto ≥ 90 %, latencia p95 < 30 s, sin throttling térmico, swap = 0, > 1 GB de RAM libre, Baileys estable 48 h, al menos un banco tuyo accesible con histórico útil.
+**Criterio de paso**: intent correcto ≥ 90 %, latencia p95 < 30 s, sin throttling térmico, swap usado sin crecer durante el benchmark (línea base en `docs/baseline-pi.md`), > 1 GB de RAM disponible, Baileys estable 48 h, al menos un banco tuyo accesible con histórico útil.
 
 **Cómo trabajamos**: cada bloque se explica antes de tocar nada. Tú das el visto bueno y, cuando el paso lo haga otra persona (tú en tu navegador o en la Pi), te dejo la instrucción exacta. No se ejecuta nada técnico sin que hayas entendido qué hace.
 
