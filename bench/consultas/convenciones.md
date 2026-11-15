@@ -29,6 +29,10 @@ Contrato entre el modelo (que traduce) y el ejecutor (que calcula). El esquema f
 | los últimos N días | hoy − (N − 1) → hoy (N días contando hoy) |
 | «en octubre» (mes sin año) | ese mes del año más reciente que no empiece en el futuro |
 
+«El último mes» (sin «pasado») = últimos 30 días, no el mes natural anterior. «Gasto en X» sin periodo = todo el histórico.
+
+Un `aggregate` con `group_by` puede llevar `sort` y `limit` («el mes con más gastos» = `group_by: month`, `sort: amount_desc`, `limit: 1`).
+
 Sin soporte (dan `unknown`): «este fin de semana», quincenas y cualquier periodo no listado.
 
 ## Comparaciones
