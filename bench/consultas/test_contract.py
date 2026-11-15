@@ -182,8 +182,17 @@ class RefineTest(unittest.TestCase):
     def test_comisiones(self):
         self.assertEqual(c.refine("¿Cuántas comisiones?", {"intent": "aggregate", "metric": "count"})["category"], "comisiones")
 
-    def test_no_pisa_la_categoria_del_modelo(self):
-        self.assertEqual(c.refine("gasto en bizum", {"intent": "aggregate", "category": "otros"})["category"], "otros")
+    def test_manda_sobre_la_categoria_del_modelo(self):
+        self.assertEqual(c.refine("gasto en bizum", {"intent": "aggregate", "category": "otros"})["category"], "bizum")
+
+    def test_si_encajan_dos_categorias_no_decide(self):
+        q = {"intent": "aggregate", "category": "otros"}
+        self.assertEqual(c.refine("bizum de la cena", q)["category"], "otros")
+
+    def test_restaurantes_supermercado_ocio_gasolina(self):
+        for question, category in (("¿Cuánto gasto en cenas?", "restaurantes"), ("gasto en el supermercado", "supermercado"),
+                                   ("¿Cuánto gasto en ocio?", "ocio_suscripciones"), ("gasolina de agosto", "transporte")):
+            self.assertEqual(c.refine(question, {"intent": "aggregate"})["category"], category, question)
 
     def test_no_actua_en_unknown_ni_balance(self):
         for intent in ("unknown", "balance", "compare_periods"):

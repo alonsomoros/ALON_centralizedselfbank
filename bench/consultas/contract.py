@@ -39,11 +39,15 @@ MODEL_FIELDS = [
     "min_amount", "max_amount", "sort", "limit", "reason",
 ]
 
-# Categorías inequívocas por palabra clave (se aplican solo si el modelo no puso categoría).
+# Categorías inequívocas por palabra clave. Mandan sobre el modelo si la pregunta solo encaja con una.
 KEYWORDS = [
     (re.compile(r"\bbizums?\b", re.I), "bizum"),
     (re.compile(r"\bcajeros?\b|\bsacar (?:dinero|efectivo)\b", re.I), "efectivo"),
     (re.compile(r"\bcomisi(?:ón|on|ones)\b", re.I), "comisiones"),
+    (re.compile(r"\bcenas?\b|\bcenar\b|\brestaurantes?\b", re.I), "restaurantes"),
+    (re.compile(r"\bsupermercados?\b", re.I), "supermercado"),
+    (re.compile(r"\bocio\b", re.I), "ocio_suscripciones"),
+    (re.compile(r"\bgasolina\b|\bgasolinera\b", re.I), "transporte"),
 ]
 REFINABLE = {"aggregate", "list_transactions", "last_transaction", "top_merchants", "recurring"}
 
@@ -150,13 +154,12 @@ def sanitize(q: dict) -> dict:
 
 
 def refine(question: str, q: dict) -> dict:
-    """Devuelve una copia con la categoría deducida por palabras clave, si el modelo no la puso."""
+    """Devuelve una copia con la categoría fijada por palabra clave, si la pregunta solo encaja con una."""
     result = copy.deepcopy(q)
-    if result.get("intent") in REFINABLE and result.get("category") is None:
-        for pattern, category in KEYWORDS:
-            if pattern.search(question):
-                result["category"] = category
-                break
+    if result.get("intent") in REFINABLE:
+        matches = {category for pattern, category in KEYWORDS if pattern.search(question)}
+        if len(matches) == 1:
+            result["category"] = matches.pop()
     return result
 
 

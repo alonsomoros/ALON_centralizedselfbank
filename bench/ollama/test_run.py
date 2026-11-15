@@ -30,10 +30,14 @@ class ScoreTest(unittest.TestCase):
         self.assertFalse(run.score(ITEM, "[1, 2]")["json_ok"])
 
     def test_intent_bien_pero_campo_distinto(self):
-        s = run.score(ITEM, reply(intent="aggregate", metric="sum", direction="out", category="restaurantes", period="septiembre"))
+        s = run.score(ITEM, reply(intent="aggregate", metric="count", category="restaurantes"))
         self.assertTrue(s["intent_ok"] and s["schema_ok"])
         self.assertFalse(s["exact"])
-        self.assertEqual(sorted(s["diff"]), ["from", "to"])
+        self.assertEqual(s["diff"], ["metric"])
+
+    def test_el_periodo_lo_fijan_las_reglas_aunque_el_modelo_se_equivoque(self):
+        s = run.score(ITEM, reply(intent="aggregate", metric="sum", category="restaurantes", period="septiembre"))
+        self.assertTrue(s["exact"])
 
     def test_campos_sobrantes_se_ignoran(self):
         s = run.score(ITEM, reply(**ITEM["expected"], compare_period="hoy", reason="ambigua"))

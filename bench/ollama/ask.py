@@ -18,6 +18,7 @@ HERE = Path(__file__).parent
 CONSULTAS = HERE.parent / "consultas"
 sys.path.insert(0, str(CONSULTAS))
 import contract  # noqa: E402
+import rules  # noqa: E402
 import validate as v  # noqa: E402  (reutiliza el validador del dataset)
 
 OLLAMA = "http://127.0.0.1:11434/api/chat"
@@ -69,7 +70,7 @@ def build_messages(question: str, today: str) -> list:
 
 def interpret(question: str, raw: dict, today) -> tuple:
     """Consulta cruda del modelo -> (consulta completa | None, errores). Es la tubería de producción."""
-    cleaned = contract.sanitize(raw)
+    cleaned = contract.sanitize(rules.apply(question, contract.sanitize(raw)))
     errors = contract.model_errors(cleaned)
     if errors:
         return None, errors
