@@ -104,5 +104,6 @@ Decisión tuya antes de empezar 0.A: ¿la autorización se hará desde tu PC (op
 - [x] 0.C modelo decidido: qwen2.5:3b de respaldo + ruta rápida por reglas (docs/decision-modelo.md)
 - [x] Contrato de la API del chat y servidor simulado (M10a): docs/api-contrato.md
 - [x] Prueba de conectividad por Tailscale con el simulado en la Pi, solo tailnet y con token propio (M10): docs/despliegue-mock-pi.md
+- [x] Datos reales en SQLite, ejecutor SQL y servicio real con el modelo local; pruebas de sistema y de completitud: docs/datos-y-consultas.md
 - [ ] 0.E chat web mínimo (M10b)
 - [ ] 0.F informe (M12)

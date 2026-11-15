@@ -16,5 +16,5 @@ Preguntas reales del usuario que el contrato v2 **no puede expresar todavía**. 
 
 Notas del ejecutor (no del contrato):
 - **Coincidencia aproximada de comercios**: «burguer king» debe encontrar «BURGER KING». Normalizar (minúsculas, sin tildes) y comparar por trigramas contra los comercios reales, nunca por lo que escriba el modelo.
-- **Personas en Bizum**: comprobar con datos reales si el texto del Bizum incluye el nombre del destinatario antes de prometer «Bizums que le envié a X».
+- **Personas en Bizum**: comprobado con datos reales (15-nov-2026): el nombre **sí viene en el texto** (254/254) y se guarda como contraparte; «Bizums que le envié a X» funciona buscando por nombre.
 - `group_by: merchant` también sirve para «por concepto» en ingresos (la contraparte o el concepto).

@@ -31,15 +31,19 @@ Consultar mis cuentas bancarias españolas en lenguaje natural mediante un chat 
 ## Comandos
 
 ```bash
-# tests del paquete y de la API (desde la raíz del repo)
+# tests (desde la raíz del repo)
 python -m unittest discover -s tests -t .
-# tests de contrato, reglas, router y dataset
 python -m unittest discover -s bench/consultas
 python -m unittest discover -s bench/ollama
-# servidor simulado de la API para desarrollar la pantalla
+
+# en la Pi (código en ~/selfbank-dev)
+python3 -m selfbank.tools.ingest_cli --raw-dir ~/.selfbank/raw/prod --session ~/.selfbank/session-prod.json --db ~/.selfbank/selfbank.db
+python3 -m selfbank.tools.categorize_wizard              # clasificar comercios (en tu terminal)
+python3 -m selfbank.tools.system_check --db ~/.selfbank/selfbank.db --raw-dir ~/.selfbank/raw/prod [--llm]
+bash ~/run-selfbank-real.sh                              # servicio real en 127.0.0.1:8789 (token en ~/.selfbank/api-token)
+
+# desarrollo de la pantalla: servidor simulado sin datos reales
 python -m selfbank.api.mock --port 8788 --token dev-token
-# informe de la ruta rápida (cobertura y acierto sin modelo)
-python bench/consultas/router_report.py
 ```
 
 ## Mapa del repositorio
@@ -47,17 +51,24 @@ python bench/consultas/router_report.py
 ```
 /AGENTS.md          este archivo
 /CLAUDE.md          puntero a este archivo
-/selfbank/          paquete del servicio
+/selfbank/          paquete del servicio (solo biblioteca estándar)
     contract.py     contrato de la consulta, periodos, valores por defecto
     rules.py        reglas deterministas (periodo, sentido, importes, categorías)
     router.py       ruta rápida: clasifica sin modelo cuando entiende todas las palabras
-    describe.py     interpretación visible y formato de fechas e importes
-    answers.py      plantillas de respuesta (el modelo nunca redacta)
-    schema.py       comprobador de JSON Schema
-    api/            servidor HTTP, esquemas del contrato y servidor simulado
-/tests/             pruebas del paquete y de la API
+    pipeline.py     interpretación compartida: sanitize -> reglas -> validación -> fechas
+    prompt.py llm.py  prompt y cliente de Ollama (solo local; los fallos se cuentan)
+    db.py ingest.py   SQLite, importación idempotente y enmascarado de tarjetas
+    categorize.py     tipo, comercio y categoría de cada movimiento (reglas propias en ~/.selfbank/categories.local.json)
+    executor.py     SQL parametrizado de solo lectura: de la consulta a las cifras
+    engine.py       motor real: pregunta -> respuesta (rutas rápida y del modelo, historial, estado)
+    describe.py answers.py  interpretación visible y plantillas de respuesta (el modelo nunca redacta)
+    schema.py text.py suggestions.py
+    api/            servidor HTTP, esquemas del contrato, servicio real (serve) y simulado (mock)
+    tools/          ingest_cli, recategorize, categorize_wizard, system_check, oracle
+    model.schema.json resolved.schema.json   lo que emite el modelo y la consulta completa
+/tests/             pruebas del paquete, la API, el motor y las herramientas (datos sintéticos)
 /bench/             dataset de preguntas, validador, runner y pruebas que dependen del dataset
-/docs/              informes de Fase 0, decisiones y contrato de la API
+/docs/              informes de Fase 0, decisiones, contrato de la API y datos y consultas
 ```
 
 Las carpetas se crean cuando se necesitan.
@@ -67,6 +78,8 @@ Las carpetas se crean cuando se necesitan.
 - Plan de referencia: `C:\Users\Alonso\.claude\plans\pasted-content-id-4ae1-proyecto-selfban-abundant-stardust.md` (fases 0–7, métricas A–E).
 - TDD para el ejecutor SQL, el validador y el router de reglas.
 - Las respuestas se redactan con plantillas (`answers.py`); el modelo solo traduce la pregunta.
+- Importes en céntimos enteros, nunca `float`. Las consultas SQL llevan siempre parámetros y usan una conexión de solo lectura.
+- Nada de contenido de movimientos en logs, salidas de herramientas ni chats: las herramientas imprimen contadores y OK/FALLO.
 - Cada respuesta de la API incluye la interpretación de la pregunta, para que un malentendido sea visible.
 - Una consulta LLM a la vez; timeout duro de 45 s.
 - No añadir dependencias sin justificarlas por coste, RAM o seguridad.

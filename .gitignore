@@ -21,3 +21,9 @@ bench/**/out/
 *.db
 *.sqlite
 metrics*.csv
+
+# datos personales de selfbank (reglas con tus comercios, historial, copias)
+categories.local.json
+*.db-wal
+*.db-shm
+.check-*/
