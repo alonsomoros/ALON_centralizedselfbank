@@ -1,7 +1,8 @@
 import unittest
 from pathlib import Path
 
-import rules as r
+import _path  # noqa: F401
+from selfbank import rules as r
 import validate as v
 
 

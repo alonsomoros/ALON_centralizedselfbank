@@ -17,8 +17,8 @@ from pathlib import Path
 HERE = Path(__file__).parent
 CONSULTAS = HERE.parent / "consultas"
 sys.path.insert(0, str(CONSULTAS))
-import contract  # noqa: E402
-import rules  # noqa: E402
+sys.path.insert(0, str(HERE.parents[1]))  # raíz del repo: paquete selfbank
+from selfbank import contract, rules  # noqa: E402
 import validate as v  # noqa: E402  (reutiliza el validador del dataset)
 
 OLLAMA = "http://127.0.0.1:11434/api/chat"

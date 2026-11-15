@@ -9,9 +9,8 @@ Solo biblioteca estándar.
 
 import re
 
-import contract
-import rules
-from rules import normalize
+from . import contract, rules
+from .rules import normalize
 
 FUNCTION_WORDS = set("""
 el la los las un una unos unas de del al a en por para con sin sobre entre desde hasta que quien quienes cual cuales

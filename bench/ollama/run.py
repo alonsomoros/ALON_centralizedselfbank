@@ -19,10 +19,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 import ask
-import contract
-import router
-import rules
 import split
+from selfbank import contract, router, rules
 import validate as v
 
 OUT = Path(__file__).parent / "out"

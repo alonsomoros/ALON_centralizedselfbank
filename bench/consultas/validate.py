@@ -17,46 +17,13 @@ from datetime import date
 from pathlib import Path
 
 HERE = Path(__file__).parent
-import contract  # noqa: E402
+import _path  # noqa: E402,F401  (raíz del repo en sys.path)
+from selfbank import contract  # noqa: E402
 
 SCHEMA = json.loads((HERE / "schema.json").read_text(encoding="utf-8"))
 RESOLVED_SCHEMA = json.loads((HERE / "resolved.schema.json").read_text(encoding="utf-8"))
 
-TYPES = {
-    "string": str, "number": (int, float), "integer": int,
-    "null": type(None), "object": dict, "array": list, "boolean": bool,
-}
-
-
-def type_ok(value, name):
-    if name in ("number", "integer") and isinstance(value, bool):
-        return False
-    return isinstance(value, TYPES[name])
-
-
-def check(value, schema, path="$"):
-    """Subconjunto de JSON Schema: type, enum, pattern, minimum, required, properties, additionalProperties."""
-    errors = []
-    declared = schema.get("type")
-    if declared is not None:
-        names = [declared] if isinstance(declared, str) else declared
-        if not any(type_ok(value, n) for n in names):
-            return [f"{path}: tipo {type(value).__name__} no permitido {names}"]
-    if "enum" in schema and value not in schema["enum"]:
-        errors.append(f"{path}: {value!r} no está en {schema['enum']}")
-    if isinstance(value, str) and "pattern" in schema and not re.search(schema["pattern"], value):
-        errors.append(f"{path}: {value!r} no cumple {schema['pattern']}")
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and "minimum" in schema and value < schema["minimum"]:
-        errors.append(f"{path}: {value} < mínimo {schema['minimum']}")
-    if isinstance(value, dict):
-        props = schema.get("properties", {})
-        errors += [f"{path}: falta {key}" for key in schema.get("required", []) if key not in value]
-        if schema.get("additionalProperties") is False:
-            errors += [f"{path}: campo no permitido {key}" for key in value if key not in props]
-        for key, item in value.items():
-            if key in props:
-                errors += check(item, props[key], f"{path}.{key}")
-    return errors
+from selfbank.schema import check  # noqa: E402,F401  (mismo comprobador que usa la API)
 
 
 # ---- reglas semánticas ------------------------------------------------------

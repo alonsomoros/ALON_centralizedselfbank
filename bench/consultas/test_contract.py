@@ -3,7 +3,8 @@
 import unittest
 from datetime import date
 
-import contract as c
+import _path  # noqa: F401
+from selfbank import contract as c
 
 TODAY = date(2026, 11, 15)  # domingo
 
@@ -43,7 +44,7 @@ class PeriodTest(unittest.TestCase):
     def test_todas_las_etiquetas_del_esquema_resuelven(self):
         import json
         from pathlib import Path
-        schema = json.loads((Path(c.__file__).parent / "schema.json").read_text(encoding="utf-8"))
+        schema = json.loads((Path(__file__).parent / "schema.json").read_text(encoding="utf-8"))
         for field in ("period", "compare_period"):
             self.assertEqual(sorted(schema["properties"][field]["enum"]), sorted(c.PERIODS))
         for tag in c.PERIODS:
@@ -127,7 +128,7 @@ class KeywordsOnDatasetTest(unittest.TestCase):
         import json
         from pathlib import Path
         clashes = []
-        for line in (Path(c.__file__).parent / "questions.jsonl").read_text(encoding="utf-8").splitlines():
+        for line in (Path(__file__).parent / "questions.jsonl").read_text(encoding="utf-8").splitlines():
             item = json.loads(line)
             got = c.refine(item["question"], item["expected"]).get("category")
             if got != item["expected"].get("category"):

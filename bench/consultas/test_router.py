@@ -1,6 +1,7 @@
 import unittest
 
-import router as rt
+import _path  # noqa: F401
+from selfbank import router as rt
 import router_report
 import validate as v
 

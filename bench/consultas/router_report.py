@@ -7,10 +7,9 @@ Ojo: las reglas se afinaron mirando estas preguntas; es una cota optimista, no u
 import sys
 from datetime import date
 
-import contract
-import router
-import rules
+import _path  # noqa: F401
 import validate as v
+from selfbank import contract, router, rules
 
 
 def final_query(question: str, fast: dict, today: date):
