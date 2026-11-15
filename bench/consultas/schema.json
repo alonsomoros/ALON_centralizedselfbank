@@ -1,36 +1,42 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Consulta de selfbank",
-  "description": "Salida del modelo: traduce la pregunta a esta consulta. Todos los campos son obligatorios; lo que no aplica va a null.",
+  "title": "Consulta de selfbank (salida del modelo, v2)",
+  "description": "El modelo solo escribe los campos con valor. Las fechas las calcula el código a partir de 'period'.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "intent", "metric", "group_by", "direction", "category", "text",
-    "from", "to", "compare_from", "compare_to",
-    "min_amount", "max_amount", "sort", "limit", "clarification"
-  ],
+  "required": ["intent"],
   "properties": {
     "intent": {
       "enum": ["aggregate", "list_transactions", "last_transaction", "balance", "compare_periods", "top_merchants", "recurring", "unknown"]
     },
-    "metric": { "enum": ["sum", "count", null] },
-    "group_by": { "enum": ["category", "merchant", "month", null] },
+    "metric": { "enum": ["sum", "count"] },
+    "group_by": { "enum": ["category", "merchant", "month"] },
     "direction": { "enum": ["out", "in", "any"] },
     "category": {
       "enum": [
         "supermercado", "restaurantes", "transporte", "ocio_suscripciones", "salud", "compras",
-        "hogar_facturas", "viajes", "efectivo", "comisiones", "bizum", "transferencias", "otros", null
+        "hogar_facturas", "viajes", "efectivo", "comisiones", "bizum", "transferencias", "otros"
       ]
     },
-    "text": { "type": ["string", "null"] },
-    "from": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-    "to": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-    "compare_from": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-    "compare_to": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
-    "min_amount": { "type": ["number", "null"], "minimum": 0 },
-    "max_amount": { "type": ["number", "null"], "minimum": 0 },
-    "sort": { "enum": ["date_desc", "amount_desc", "amount_asc", null] },
-    "limit": { "type": ["integer", "null"], "minimum": 1 },
-    "clarification": { "type": ["string", "null"] }
+    "text": { "type": "string" },
+    "period": {
+      "enum": [
+        "hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "este_ano", "ano_pasado",
+        "ultimos_7_dias", "ultimos_15_dias", "ultimos_30_dias", "ultimos_90_dias", "ultimos_365_dias",
+        "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ]
+    },
+    "compare_period": {
+      "enum": [
+        "hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "este_ano", "ano_pasado",
+        "ultimos_7_dias", "ultimos_15_dias", "ultimos_30_dias", "ultimos_90_dias", "ultimos_365_dias",
+        "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+      ]
+    },
+    "min_amount": { "type": "number", "minimum": 0 },
+    "max_amount": { "type": "number", "minimum": 0 },
+    "sort": { "enum": ["date_desc", "amount_desc", "amount_asc"] },
+    "limit": { "type": "integer", "minimum": 1 },
+    "reason": { "enum": ["ambigua", "fuera_de_alcance", "operacion"] }
   }
 }

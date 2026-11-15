@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Consulta de selfbank",
+  "description": "Salida del modelo: traduce la pregunta a esta consulta. Todos los campos son obligatorios; lo que no aplica va a null.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "intent", "metric", "group_by", "direction", "category", "text",
+    "from", "to", "compare_from", "compare_to",
+    "min_amount", "max_amount", "sort", "limit", "clarification"
+  ],
+  "properties": {
+    "intent": {
+      "enum": ["aggregate", "list_transactions", "last_transaction", "balance", "compare_periods", "top_merchants", "recurring", "unknown"]
+    },
+    "metric": { "enum": ["sum", "count", null] },
+    "group_by": { "enum": ["category", "merchant", "month", null] },
+    "direction": { "enum": ["out", "in", "any"] },
+    "category": {
+      "enum": [
+        "supermercado", "restaurantes", "transporte", "ocio_suscripciones", "salud", "compras",
+        "hogar_facturas", "viajes", "efectivo", "comisiones", "bizum", "transferencias", "otros", null
+      ]
+    },
+    "text": { "type": ["string", "null"] },
+    "from": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "to": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "compare_from": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "compare_to": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "min_amount": { "type": ["number", "null"], "minimum": 0 },
+    "max_amount": { "type": ["number", "null"], "minimum": 0 },
+    "sort": { "enum": ["date_desc", "amount_desc", "amount_asc", null] },
+    "limit": { "type": ["integer", "null"], "minimum": 1 },
+    "clarification": { "type": ["string", "null"] }
+  }
+}

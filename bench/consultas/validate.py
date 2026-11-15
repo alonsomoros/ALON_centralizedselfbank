@@ -3,22 +3,24 @@
 Uso:  python validate.py [questions.jsonl]
 
 Comprueba, para cada línea del dataset:
-  1. que `expected` cumple schema.json,
-  2. reglas semánticas por intent (ver convenciones.md),
-  3. que las fechas coinciden con las que resulta de aplicar las convenciones
-     a la etiqueta `tags` (así se detectan errores de aritmética de fechas).
+  1. que `expected` (consulta del modelo, v2) cumple schema.json,
+  2. coherencia por intent (contract.model_errors),
+  3. que al expandirla (contract.expand) resulta una consulta completa que cumple
+     resolved.schema.json y las reglas semánticas del ejecutor.
 """
 
-import calendar
 import json
 import re
 import sys
 from collections import Counter
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 HERE = Path(__file__).parent
+import contract  # noqa: E402
+
 SCHEMA = json.loads((HERE / "schema.json").read_text(encoding="utf-8"))
+RESOLVED_SCHEMA = json.loads((HERE / "resolved.schema.json").read_text(encoding="utf-8"))
 
 TYPES = {
     "string": str, "number": (int, float), "integer": int,
@@ -55,44 +57,6 @@ def check(value, schema, path="$"):
             if key in props:
                 errors += check(item, props[key], f"{path}.{key}")
     return errors
-
-
-# ---- convenciones de fechas -------------------------------------------------
-
-def month_bounds(year: int, month: int):
-    return date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1])
-
-
-def resolve_tag(tag: str, today: date):
-    """Devuelve (from, to) según convenciones.md."""
-    name, _, arg = tag.partition(":")
-    if name == "hoy":
-        return today, today
-    if name == "ayer":
-        return today - timedelta(days=1), today - timedelta(days=1)
-    if name == "este_mes":
-        return today.replace(day=1), today
-    if name == "mes_pasado":
-        first = today.replace(day=1) - timedelta(days=1)
-        return month_bounds(first.year, first.month)
-    if name == "esta_semana":
-        return today - timedelta(days=today.weekday()), today
-    if name == "semana_pasada":
-        monday = today - timedelta(days=today.weekday() + 7)
-        return monday, monday + timedelta(days=6)
-    if name == "este_trimestre":
-        return date(today.year, 3 * ((today.month - 1) // 3) + 1, 1), today
-    if name == "este_ano":
-        return date(today.year, 1, 1), today
-    if name == "ano_pasado":
-        return date(today.year - 1, 1, 1), date(today.year - 1, 12, 31)
-    if name == "ultimos_dias":
-        return today - timedelta(days=int(arg) - 1), today
-    if name == "mes_nombre":
-        month = int(arg)
-        year = today.year if month <= today.month else today.year - 1
-        return month_bounds(year, month)
-    raise ValueError(f"etiqueta desconocida: {tag}")
 
 
 # ---- reglas semánticas ------------------------------------------------------
@@ -155,23 +119,16 @@ def item_errors(item: dict) -> list:
         return ["today no es una fecha ISO"]
     if not item["question"].strip():
         errors.append("question vacía")
-    schema_errs = check(item["expected"], SCHEMA)
-    errors += schema_errs
-    if schema_errs:
+    errors += check(item["expected"], SCHEMA)
+    if errors:
         return errors
-    expected = item["expected"]
-    errors += semantic_errors(expected)
-
-    tags = item.get("tags", {})
-    for key, (a, b) in {"period": ("from", "to"), "compare": ("compare_from", "compare_to")}.items():
-        if key in tags:
-            want = tuple(d.isoformat() for d in resolve_tag(tags[key], today))
-            got = (expected[a], expected[b])
-            if want != got:
-                errors.append(f"{a}/{b} esperados {want} según la etiqueta {tags[key]!r}, pero hay {got}")
-    for key in tags:
-        if key not in ("period", "compare"):
-            errors.append(f"etiqueta no permitida: {key}")
+    errors += contract.model_errors(item["expected"])
+    if errors:
+        return errors
+    full = contract.expand(item["expected"], today)
+    errors += check(full, RESOLVED_SCHEMA)
+    if not errors:
+        errors += semantic_errors(full)
     return errors
 
 
