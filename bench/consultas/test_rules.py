@@ -62,7 +62,8 @@ class PeriodsTest(unittest.TestCase):
 class DirectionTest(unittest.TestCase):
     def test_gasto(self):
         for q in ("¿Cuánto gasté?", "Mis compras", "Pagos de menos de 10 euros", "¿Qué suscripciones pago?",
-                  "veces que he sacado dinero del cajero", "¿Cuánto me cobró Netflix?", "comisiones me han cobrado"):
+                  "veces que he sacado dinero del cajero", "¿Cuánto me cobró Netflix?", "comisiones me han cobrado",
+                  "Bizums que le he enviado a Juan", "lo que envié ayer"):
             self.assertEqual(r.direction(q), "out", q)
 
     def test_ingreso(self):
@@ -70,7 +71,7 @@ class DirectionTest(unittest.TestCase):
             self.assertEqual(r.direction(q), "in", q)
 
     def test_sin_pista_o_contradictoria(self):
-        for q in ("¿Cuál fue mi último Bizum?", "Movimientos de la semana pasada", "gasté lo que ingresé"):
+        for q in ("¿Cuál fue mi último Bizum?", "Movimientos de la semana pasada", "gasté lo que ingresé", "movimientos con envío incluido"):
             self.assertIsNone(r.direction(q), q)
 
 

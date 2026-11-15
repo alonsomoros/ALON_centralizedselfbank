@@ -39,3 +39,8 @@
 {"id":"q039","today":"2026-11-15","question":"De donde crees que puedo ahorrar en un mes y cuanto?","expected":{"intent":"unknown","reason":"fuera_de_alcance"}}
 {"id":"q040","today":"2026-11-15","question":"Cuánto de lo que ingresé el mes pasado he gastado hasta ahora?","expected":{"intent":"unknown","reason":"fuera_de_alcance"}}
 {"id":"q041","today":"2026-11-15","question":"Reparte mi dinero en 25% inversión, 15% emergencia, 50% esencial y 10% ocio: qué llevo gastado y cuánto me queda este mes?","expected":{"intent":"unknown","reason":"fuera_de_alcance"}}
+{"id":"q042","today":"2026-11-15","question":"¿Cuánto dinero he recibido en total por devoluciones este trimestre?","split":"holdout","expected":{"intent":"aggregate","metric":"sum","direction":"in","text":"devoluciones","period":"este_trimestre"}}
+{"id":"q043","today":"2026-11-15","question":"Desglosa mis ingresos por concepto en lo que va de año","split":"holdout","expected":{"intent":"aggregate","metric":"sum","group_by":"merchant","direction":"in","period":"este_ano"}}
+{"id":"q044","today":"2026-11-15","question":"¿Cuándo fue la última vez que fui al burguer king?","split":"holdout","expected":{"intent":"last_transaction","text":"burguer king"}}
+{"id":"q045","today":"2026-11-15","question":"¿Qué pagos hice ayer?","split":"holdout","expected":{"intent":"list_transactions","direction":"out","period":"ayer"}}
+{"id":"q046","today":"2026-11-15","question":"Busca los Bizums que le he enviado a Juan","split":"holdout","expected":{"intent":"list_transactions","direction":"out","category":"bizum","text":"Juan"}}

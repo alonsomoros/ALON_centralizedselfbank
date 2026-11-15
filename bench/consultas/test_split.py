@@ -13,7 +13,7 @@ class SplitTest(unittest.TestCase):
 
     def test_cubre_todo_y_sin_solapes(self):
         self.assertEqual(set(self.parts), {i["id"] for i in self.items})
-        self.assertEqual(set(self.parts.values()), {"dev", "test"})
+        self.assertEqual(set(self.parts.values()), {"dev", "test", "holdout"})
 
     def test_es_determinista(self):
         self.assertEqual(self.parts, split.assign(list(reversed(self.items))))
@@ -29,8 +29,15 @@ class SplitTest(unittest.TestCase):
 
     def test_intents_principales_en_ambos(self):
         for intent in ("aggregate", "list_transactions", "top_merchants"):
-            got = {self.parts[i["id"]] for i in self.items if i["expected"]["intent"] == intent}
+            got = {self.parts[i["id"]] for i in self.items if i["expected"]["intent"] == intent} - {"holdout"}
             self.assertEqual(got, {"dev", "test"}, intent)
+
+    def test_holdout_explicito_no_altera_el_resto(self):
+        base = split.assign([i for i in self.items if "split" not in i])
+        self.assertEqual({k: x for k, x in self.parts.items() if x != "holdout"}, base)
+
+    def test_hay_holdout(self):
+        self.assertGreaterEqual(sum(1 for x in self.parts.values() if x == "holdout"), 5)
 
     def test_un_intent_unico_va_a_desarrollo(self):
         self.assertEqual(split.assign([{"id": "a", "expected": {"intent": "balance"}}]), {"a": "dev"})

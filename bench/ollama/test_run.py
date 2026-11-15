@@ -58,6 +58,11 @@ class ScoreTest(unittest.TestCase):
                 "expected": {"intent": "last_transaction", "category": "bizum"}}
         self.assertTrue(run.score(item, reply(intent="last_transaction"))["exact"])
 
+    def test_el_texto_no_distingue_mayusculas(self):
+        item = {"id": "t", "today": "2026-11-15", "question": "¿Cuándo fue lo de Burger King?",
+                "expected": {"intent": "last_transaction", "text": "burger king"}}
+        self.assertTrue(run.score(item, reply(intent="last_transaction", text="Burger King"))["exact"])
+
     def test_unknown_con_otra_reason_es_exacta_pero_reason_mal(self):
         s = run.score(UNKNOWN, reply(intent="unknown", reason="ambigua"))
         self.assertTrue(s["exact"] and s["intent_ok"])

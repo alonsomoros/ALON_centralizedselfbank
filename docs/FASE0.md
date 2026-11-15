@@ -100,6 +100,7 @@ Decisión tuya antes de empezar 0.A: ¿la autorización se hará desde tu PC (op
 - [x] 0.A4 copia cifrada de los datos en bruto y radiografía del formato de `remittance_information` (M5c)
 - [x] 0.D dataset de preguntas: 41 preguntas validadas, 7 `unknown` (M6)
 - [x] M7 Ollama instalado y primer prompt; contrato v2 (M7b)
+- [x] Runner, prompt v3, reglas deterministas y reparto dev/test/holdout (M8-M9 parcial)
 - [ ] 0.C benchmark en la Pi (M8–M9)
 - [ ] Contrato de la API del chat y servidor simulado (M10a)
 - [ ] 0.E chat web mínimo (M10b)

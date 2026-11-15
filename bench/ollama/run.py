@@ -60,6 +60,9 @@ def score(item: dict, content: str) -> dict:
         result["reason_ok"] = got.get("reason") == expected["reason"]
     # La aclaración depende solo de `reason`, que se puntúa aparte.
     final.pop("clarification"), want.pop("clarification")
+    for query in (final, want):  # «Burger King» y «burger king» son la misma búsqueda
+        if isinstance(query.get("text"), str):
+            query["text"] = query["text"].strip().lower()
     result["diff"] = ask.compare(want, final)
     result["exact"] = not result["diff"]
     return result
@@ -170,7 +173,7 @@ def run_one(model, item, use_format, think) -> dict:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
-    parser.add_argument("--split", choices=["dev", "test", "all"], default="dev")
+    parser.add_argument("--split", choices=["dev", "test", "holdout", "blind", "all"], default="dev")
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--no-format", action="store_true")
     parser.add_argument("--no-think", action="store_true")
@@ -181,7 +184,8 @@ def main(argv=None) -> int:
 
     items = [item for _, item in v.load(ask.CONSULTAS / "questions.jsonl")]
     parts = split.assign(items)
-    chosen = [i for i in items if args.split == "all" or parts[i["id"]] == args.split]
+    wanted = {"blind": ("test", "holdout"), "all": ("dev", "test", "holdout")}.get(args.split, (args.split,))
+    chosen = [i for i in items if parts[i["id"]] in wanted]
     if args.limit:
         chosen = chosen[: args.limit]
     think = False if args.no_think else None

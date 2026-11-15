@@ -73,7 +73,7 @@ def periods(question: str) -> list:
 
 OUT_CUES = re.compile(
     r"\bgast\w*|\bcompr\w*|\bpag(?:o|os|ue|ues|ado|ar|aron|ando)\b|\bcargo\w*|\bsac(?:ar|ado|ue|o)\b"
-    r"|\bme (?:han |ha )?cobr\w*|\bme cobr\w*"
+    r"|\bme (?:han |ha )?cobr\w*|\bme cobr\w*|\benvi(?:e|ado|ados|ar|aron|amos)\b"
 )
 IN_CUES = re.compile(r"\bingres\w*|\brecib\w*|\bnomina\w*|\babon(?:o|os|ado|ados)\b|\bme han (?:pagado|abonado)\b")
 

@@ -119,6 +119,8 @@ def item_errors(item: dict) -> list:
         return ["today no es una fecha ISO"]
     if not item["question"].strip():
         errors.append("question vacía")
+    if item.get("split", "holdout") != "holdout":
+        errors.append("split solo admite 'holdout' (dev/test se reparten solos)")
     errors += check(item["expected"], SCHEMA)
     if errors:
         return errors
