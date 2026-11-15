@@ -25,7 +25,7 @@ def main(paths) -> int:
             rows.append(new)
         before, after = data["summary"], run.summarize(rows)
         print(f"\n{data['model']} ({data['split']}), {after['n']} respuestas")
-        for key in ("schema_ok_pct", "intent_pct", "exact_pct", "reason_pct"):
+        for key in ("schema_ok_pct", "model_intent_pct", "intent_pct", "exact_pct", "reason_pct"):
             print(f"  {key}: {before.get(key)} -> {after.get(key)}")
         print(f"  p95: {after['total_p95_s']} s (medido, no cambia)")
         for r in rows:

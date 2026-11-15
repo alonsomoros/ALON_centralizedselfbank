@@ -38,7 +38,8 @@ def percentile(values: list, p: float):
 
 def score(item: dict, content: str) -> dict:
     """Puntúa la respuesta cruda del modelo frente a lo esperado."""
-    result = {"json_ok": False, "schema_ok": False, "intent_ok": False, "exact": False, "reason_ok": None, "diff": []}
+    result = {"json_ok": False, "schema_ok": False, "intent_ok": False, "model_intent_ok": False,
+              "exact": False, "reason_ok": None, "diff": []}
     try:
         got = json.loads(content)
     except (json.JSONDecodeError, TypeError):
@@ -47,7 +48,8 @@ def score(item: dict, content: str) -> dict:
         return result
     result["json_ok"] = True
     expected = item["expected"]
-    result["intent_ok"] = got.get("intent") == expected["intent"]
+    # intent_ok es el del sistema (tras las reglas); model_intent_ok, el que dijo el modelo.
+    result["model_intent_ok"] = result["intent_ok"] = got.get("intent") == expected["intent"]
     if v.check(got, v.SCHEMA):
         return result
     today = date.fromisoformat(item["today"])
@@ -55,6 +57,7 @@ def score(item: dict, content: str) -> dict:
     if errors:
         return result
     result["schema_ok"] = True
+    result["intent_ok"] = final["intent"] == expected["intent"]
     want = contract.expand(expected, today)
     if expected["intent"] == "unknown":
         result["reason_ok"] = got.get("reason") == expected["reason"]
@@ -83,7 +86,7 @@ def summarize(rows: list) -> dict:
     return {
         "n": n,
         "json_ok_pct": pct("json_ok"), "schema_ok_pct": pct("schema_ok"),
-        "intent_pct": pct("intent_ok"), "exact_pct": pct("exact"),
+        "intent_pct": pct("intent_ok"), "model_intent_pct": pct("model_intent_ok"), "exact_pct": pct("exact"),
         "reason_pct": round(100 * sum(reasons) / len(reasons), 1) if reasons else None,
         "total_p50_s": round(percentile(totals, 50), 2), "total_p95_s": round(percentile(totals, 95), 2),
         "total_max_s": round(max(totals), 2),

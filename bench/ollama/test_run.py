@@ -58,6 +58,13 @@ class ScoreTest(unittest.TestCase):
                 "expected": {"intent": "last_transaction", "category": "bizum"}}
         self.assertTrue(run.score(item, reply(intent="last_transaction"))["exact"])
 
+    def test_el_intent_del_sistema_corrige_al_modelo(self):
+        item = {"id": "g", "today": "2026-11-15", "question": "Dime el gasto por categorías de los últimos 30 días",
+                "expected": {"intent": "aggregate", "metric": "sum", "group_by": "category", "direction": "out", "period": "ultimos_30_dias"}}
+        s = run.score(item, reply(intent="list_transactions", direction="out"))
+        self.assertFalse(s["model_intent_ok"])
+        self.assertTrue(s["intent_ok"] and s["exact"])
+
     def test_el_texto_no_distingue_mayusculas(self):
         item = {"id": "t", "today": "2026-11-15", "question": "¿Cuándo fue lo de Burger King?",
                 "expected": {"intent": "last_transaction", "text": "burger king"}}
@@ -84,7 +91,7 @@ class StatsTest(unittest.TestCase):
         self.assertIsNone(run.percentile([], 50))
 
     def row(self, **kw):
-        base = {"json_ok": True, "schema_ok": True, "intent_ok": True, "exact": True, "reason_ok": None,
+        base = {"json_ok": True, "schema_ok": True, "intent_ok": True, "model_intent_ok": True, "exact": True, "reason_ok": None,
                 "total_s": 2.0, "gen_tokens": 20, "gen_s": 2.0, "temp_c": 55.0, "throttled": "0x0",
                 "mem_available_mib": 4500, "ollama_rss_mib": 1800}
         base.update(kw)
