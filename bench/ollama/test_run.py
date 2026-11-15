@@ -94,6 +94,30 @@ class ScoreTest(unittest.TestCase):
         self.assertIsNone(run.score(ITEM, reply(**ITEM["expected"]))["reason_ok"])
 
 
+class HybridTest(unittest.TestCase):
+    def test_la_ruta_rapida_no_llama_al_modelo(self):
+        item = {"id": "b", "today": "2026-11-15", "question": "¿Cuánto dinero tengo?", "expected": {"intent": "balance"}}
+        row = run.run_one("modelo-que-no-existe", item, True, None, hybrid=True)  # si llamara al modelo, fallaría la red
+        self.assertEqual(row["source"], "rules")
+        self.assertTrue(row["exact"] and row["intent_ok"])
+        self.assertEqual(row["gen_tokens"], 0)
+        self.assertLess(row["total_s"], 0.5)
+
+    def test_resumen_separa_reglas_y_modelo(self):
+        base = {"json_ok": True, "schema_ok": True, "intent_ok": True, "model_intent_ok": True, "exact": True, "reason_ok": None,
+                "gen_tokens": 20, "gen_s": 2.0, "temp_c": 55.0, "throttled": "0x0", "mem_available_mib": 4500, "ollama_rss_mib": 1800}
+        rows = [dict(base, total_s=0.01, source="rules"), dict(base, total_s=0.02, source="rules"), dict(base, total_s=6.0, source="model")]
+        s = run.summarize(rows)
+        self.assertAlmostEqual(s["answered_by_rules_pct"], 66.7, places=1)
+        self.assertEqual(s["model_p50_s"], 6.0)
+        self.assertLess(s["total_p50_s"], 0.1)
+
+    def test_resumen_sin_llamadas_al_modelo(self):
+        base = {"json_ok": True, "schema_ok": True, "intent_ok": True, "model_intent_ok": True, "exact": True, "reason_ok": None,
+                "gen_tokens": 0, "gen_s": 0, "total_s": 0.01, "source": "rules"}
+        self.assertIsNone(run.summarize([base])["model_p95_s"])
+
+
 class StatsTest(unittest.TestCase):
     def test_percentil(self):
         data = list(range(1, 101))

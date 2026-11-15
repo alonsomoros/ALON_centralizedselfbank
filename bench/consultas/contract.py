@@ -47,7 +47,9 @@ KEYWORDS = [
     (re.compile(r"\bcenas?\b|\bcenar\b|\brestaurantes?\b", re.I), "restaurantes"),
     (re.compile(r"\bsupermercados?\b", re.I), "supermercado"),
     (re.compile(r"\bocio\b", re.I), "ocio_suscripciones"),
-    (re.compile(r"\bgasolina\b|\bgasolinera\b", re.I), "transporte"),
+    (re.compile(r"\bgasolina\b|\bgasolinera\b|\btransporte\b|\btaxis?\b|\bautobus\b|\bmetro\b|\bpeajes?\b|\bparking\b", re.I), "transporte"),
+    (re.compile(r"\bsalud\b", re.I), "salud"),
+    (re.compile(r"\bviajes?\b|\bvuelos?\b|\bhoteles?\b", re.I), "viajes"),
     (re.compile(r"\bfarmacias?\b|\bm[eé]dic[oa]s?\b|\bdentistas?\b|\bcl[ií]nicas?\b|\bhospital(?:es)?\b|\boculista\b", re.I), "salud"),
     (re.compile(r"\bluz\b|\bagua\b|\balquiler\b|\bhipoteca\b|\bwifi\b|\binternet\b", re.I), "hogar_facturas"),
 ]

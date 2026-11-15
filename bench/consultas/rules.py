@@ -203,12 +203,12 @@ def guess_text(question: str):
 GREETINGS = {"hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "que tal", "como estas", "gracias", "adios", "hasta luego"}
 OPERATION_VERBS = re.compile(r"^(?:cancela|bloquea|desbloquea|transfiere|transfiereme|paga|anula|desactiva|activa|manda|envia|ingresa|domicilia)\b")
 UNSUPPORTED = re.compile(
-    r"\bde media\b|\bmedia (?:al|por|mensual|diaria)\b|\bpromedio\b|\bduplicad\w+|\bfines? de semana\b"
+    r"\bde lo que (?:ingres|cobr|recib)\w*.*\b(?:gast|pag)\w*|\bde media\b|\bmedia (?:al|por|mensual|diaria)\b|\bpromedio\b|\bduplicad\w+|\bfines? de semana\b"
     r"|\b(?:ha|han) subido\b|\bahorr\w+|\bconsejo\w*|\bpatron(?:es)?\b|\brecomiend\w*"
 )
 FOLLOW_UP = re.compile(r"^y\b")  # «¿Y el mes anterior?»: sin contexto de conversación no se puede resolver
 LAST_ONE = re.compile(r"\bultim[oa] (?!mes\b|ano\b|semana\b|dias?\b|vez\b)\w+|\bla ultima vez\b")
-COUNT_CUE = re.compile(r"\bcuant(?:os|as) (?:veces|pedidos|compras|pagos|movimientos)\b|\bnumero de\b|\bcuantas veces\b")
+COUNT_CUE = re.compile(r"\bcuant(?:os|as)\b(?! (?:euros|dinero))|\bnumero de\b")
 GROUP_CUES = [
     (re.compile(r"\bpor categorias?\b"), "category"),
     (re.compile(r"\bpor mes(?:es)?\b|\bmensual(?:es|mente)?\b|\bcada mes\b|\bevolucion\b|\bmes con mas\b"), "month"),

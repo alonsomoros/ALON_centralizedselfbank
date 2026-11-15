@@ -20,6 +20,7 @@ from pathlib import Path
 
 import ask
 import contract
+import router
 import rules
 import split
 import validate as v
@@ -72,6 +73,10 @@ def score(item: dict, content: str) -> dict:
     return result
 
 
+def _rounded(value):
+    return None if value is None else round(value, 2)
+
+
 def summarize(rows: list) -> dict:
     """rows: una fila por llamada (sin la de calentamiento)."""
     n = len(rows)
@@ -89,6 +94,9 @@ def summarize(rows: list) -> dict:
         "json_ok_pct": pct("json_ok"), "schema_ok_pct": pct("schema_ok"),
         "intent_pct": pct("intent_ok"), "model_intent_pct": pct("model_intent_ok"), "exact_pct": pct("exact"),
         "reason_pct": round(100 * sum(reasons) / len(reasons), 1) if reasons else None,
+        "answered_by_rules_pct": round(100 * sum(1 for r in rows if r.get("source") == "rules") / n, 1),
+        "model_p50_s": _rounded(percentile([r["total_s"] for r in rows if r.get("source") != "rules"], 50)),
+        "model_p95_s": _rounded(percentile([r["total_s"] for r in rows if r.get("source") != "rules"], 95)),
         "total_p50_s": round(percentile(totals, 50), 2), "total_p95_s": round(percentile(totals, 95), 2),
         "total_max_s": round(max(totals), 2),
         "gen_tokens_mean": round(sum(r["gen_tokens"] for r in rows) / n, 1),
@@ -159,7 +167,28 @@ def wait_cool(target_c: float, timeout_s: float = 600):
         waited += 15
 
 
-def run_one(model, item, use_format, think) -> dict:
+def run_rules_only(item) -> dict:
+    """Ruta rápida: sin modelo. Devuelve la fila medida o None si hay que preguntar al modelo."""
+    started = time.perf_counter()
+    fast = router.fast_intent(item["question"])
+    if fast is None:
+        return None
+    content = json.dumps(fast, ensure_ascii=False)
+    row = score(item, content)
+    elapsed = time.perf_counter() - started
+    row.update({
+        "id": item["id"], "content": content, "wall_s": round(elapsed, 4), "total_s": elapsed, "load_s": 0,
+        "prompt_tokens": 0, "prompt_s": 0, "gen_tokens": 0, "gen_s": 0, "source": "rules",
+    })
+    row.update(sample())
+    return row
+
+
+def run_one(model, item, use_format, think, hybrid=False) -> dict:
+    if hybrid:
+        row = run_rules_only(item)
+        if row is not None:
+            return row
     started = time.perf_counter()
     reply = ask.call(model, ask.build_messages(item["question"], item["today"]), use_format, think, keep_alive="30m")
     wall = time.perf_counter() - started
@@ -170,6 +199,7 @@ def run_one(model, item, use_format, think) -> dict:
         "prompt_tokens": reply.get("prompt_eval_count", 0), "prompt_s": ask.seconds(reply.get("prompt_eval_duration")),
         "gen_tokens": reply.get("eval_count", 0), "gen_s": ask.seconds(reply.get("eval_duration")),
     })
+    row["source"] = "model"
     row.update(sample())
     return row
 
@@ -181,6 +211,7 @@ def main(argv=None) -> int:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--no-format", action="store_true")
     parser.add_argument("--no-think", action="store_true")
+    parser.add_argument("--hybrid", action="store_true", help="ruta rápida por reglas primero; el modelo solo si hay duda")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--pause", type=float, default=0, help="segundos de pausa entre llamadas (simula uso real)")
     parser.add_argument("--cooldown", type=float, default=0, help="espera a que la Pi baje de esta temperatura antes de empezar")
@@ -195,22 +226,25 @@ def main(argv=None) -> int:
     think = False if args.no_think else None
     use_format = not args.no_format
 
-    print(f"Modelo {args.model} | conjunto {args.split} ({len(chosen)} preguntas x {args.repeats}) | format={use_format} think={think}")
+    print(f"Modelo {args.model} | hybrid={args.hybrid} | conjunto {args.split} ({len(chosen)} preguntas x {args.repeats}) | format={use_format} think={think}")
     wait_cool(args.cooldown)
     before = sample()
     print(f"Antes: {before}")
-    cold = run_one(args.model, chosen[0], use_format, think)  # calentamiento: carga el modelo y la caché del prefijo
-    print(f"Arranque en frío: {cold['total_s']:.1f} s (carga {cold['load_s']:.1f} s, prompt {cold['prompt_s']:.1f} s)")
+    warm = next((i for i in chosen if not args.hybrid or router.fast_intent(i["question"]) is None), None)
+    cold = run_one(args.model, warm, use_format, think) if warm else None  # carga el modelo y la caché del prefijo
+    if cold:
+        print(f"Arranque en frío: {cold['total_s']:.1f} s (carga {cold['load_s']:.1f} s, prompt {cold['prompt_s']:.1f} s)")
 
     rows = []
     for repeat in range(args.repeats):
         for item in chosen:
-            row = run_one(args.model, item, use_format, think)
+            row = run_one(args.model, item, use_format, think, args.hybrid)
             row["repeat"] = repeat
             rows.append(row)
             time.sleep(args.pause)
         print(f"  repetición {repeat + 1}/{args.repeats} hecha")
-    unload(args.model)
+    if warm:
+        unload(args.model)
 
     summary = summarize(rows)
     OUT.mkdir(exist_ok=True)
