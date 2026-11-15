@@ -15,6 +15,11 @@ Contrato entre el modelo (que traduce) y el ejecutor (que calcula). Hay **dos fo
 - **Valores por defecto**: `direction` = `any`; `top_merchants` implica `group_by: merchant`.
 - **Categorías inequívocas por palabra clave** (`refine`): si el modelo no puso categoría y la pregunta dice *Bizum*, *cajero* / *sacar dinero*, o *comisión(es)*, se pone `bizum`, `efectivo` o `comisiones`. Nunca pisa la categoría del modelo, ni actúa en `unknown`, `balance` ni `compare_periods`.
 
+## Tubería de la consulta del modelo
+`forma (schema.json)` → `sanitize` → `model_errors` → `refine` → `expand`.
+- **`sanitize`** ignora los campos que no corresponden al intent (p. ej. `reason` fuera de `unknown`, `compare_period` fuera de `compare_periods`). No inventa ni corrige valores: si falta un campo obligatorio, sigue siendo un error y se pide reformular.
+- **Valores por defecto** (`expand`): `direction` = `any`, salvo `top_merchants` y `recurring`, que son siempre gastos (`out`) si el modelo no dice otra cosa; `compare_periods` sin `metric` = `sum`; `top_merchants` implica `group_by: merchant`.
+
 ## Reglas generales
 - Importes en euros, siempre positivos. `direction`: `out` gasto, `in` ingreso, `any` ambos o no aplica.
 - Sin periodo en la pregunta, no hay `period` y el ejecutor usa todo el histórico.

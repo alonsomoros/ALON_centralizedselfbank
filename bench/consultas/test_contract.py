@@ -120,6 +120,58 @@ class ExpandTest(unittest.TestCase):
         self.assertEqual(q, {"intent": "aggregate", "metric": "sum", "period": "este_mes"})
 
 
+class SanitizeTest(unittest.TestCase):
+    def test_quita_reason_fuera_de_unknown(self):
+        self.assertEqual(c.sanitize({"intent": "list_transactions", "reason": "ambigua", "limit": 5}),
+                         {"intent": "list_transactions", "limit": 5})
+
+    def test_quita_compare_period_si_no_compara(self):
+        q = {"intent": "aggregate", "metric": "sum", "period": "este_mes", "compare_period": "mes_pasado"}
+        self.assertEqual(c.sanitize(q), {"intent": "aggregate", "metric": "sum", "period": "este_mes"})
+
+    def test_conserva_compare_period_si_compara(self):
+        q = {"intent": "compare_periods", "period": "este_mes", "compare_period": "mes_pasado"}
+        self.assertEqual(c.sanitize(q), q)
+
+    def test_quita_metric_y_group_by_sobrantes(self):
+        self.assertEqual(c.sanitize({"intent": "list_transactions", "metric": "sum", "group_by": "month"}),
+                         {"intent": "list_transactions"})
+
+    def test_unknown_y_balance_se_quedan_minimos(self):
+        self.assertEqual(c.sanitize({"intent": "unknown", "reason": "ambigua", "period": "hoy", "category": "bizum"}),
+                         {"intent": "unknown", "reason": "ambigua"})
+        self.assertEqual(c.sanitize({"intent": "balance", "category": "bizum"}), {"intent": "balance"})
+
+    def test_no_inventa_ni_arregla_obligatorios(self):
+        self.assertTrue(c.model_errors(c.sanitize({"intent": "aggregate", "period": "hoy"})))  # sigue sin metric
+        self.assertTrue(c.model_errors(c.sanitize({"intent": "unknown", "period": "hoy"})))    # sigue sin reason
+
+    def test_no_modifica_la_entrada(self):
+        q = {"intent": "balance", "category": "bizum"}
+        c.sanitize(q)
+        self.assertEqual(q, {"intent": "balance", "category": "bizum"})
+
+    def test_lo_sanitizado_nunca_incumple_las_reglas_de_sobrantes(self):
+        for intent in ("aggregate", "list_transactions", "last_transaction", "balance", "compare_periods",
+                       "top_merchants", "recurring", "unknown"):
+            full = {"intent": intent, "metric": "sum", "group_by": "merchant", "direction": "out", "category": "bizum",
+                    "period": "hoy", "compare_period": "ayer", "reason": "ambigua"}
+            errors = c.model_errors(c.sanitize(full))
+            self.assertFalse([e for e in errors if "admite" in e or "solo se rellena" in e or "sobran" in e], (intent, errors))
+
+
+class DefaultsTest(unittest.TestCase):
+    def test_direccion_por_defecto_en_ranking_y_recurrentes(self):
+        self.assertEqual(c.expand({"intent": "top_merchants"}, TODAY)["direction"], "out")
+        self.assertEqual(c.expand({"intent": "recurring"}, TODAY)["direction"], "out")
+
+    def test_respeta_la_direccion_del_modelo(self):
+        self.assertEqual(c.expand({"intent": "top_merchants", "direction": "in"}, TODAY)["direction"], "in")
+
+    def test_otros_intents_siguen_en_any(self):
+        self.assertEqual(c.expand({"intent": "last_transaction"}, TODAY)["direction"], "any")
+
+
 class RefineTest(unittest.TestCase):
     def test_bizum(self):
         self.assertEqual(c.refine("¿Cuál fue mi último Bizum?", {"intent": "last_transaction"})["category"], "bizum")

@@ -23,21 +23,38 @@ import validate as v  # noqa: E402  (reutiliza el validador del dataset)
 OLLAMA = "http://127.0.0.1:11434/api/chat"
 
 SYSTEM = """Eres un traductor: conviertes una pregunta sobre cuentas bancarias en una consulta JSON. No respondes a la pregunta ni calculas nada.
-Escribe SOLO los campos que apliquen; no pongas campos vacíos ni null. Las fechas no las calculas: usa una etiqueta en "period".
+Escribe SOLO los campos que apliquen. No inventes ninguno: si la pregunta no lo dice, no lo pongas. Las fechas no las calculas: usas una etiqueta en "period".
 Hoy es {today}.
-intent: aggregate (sumar o contar), list_transactions (listar movimientos), last_transaction (el último), balance (saldo), compare_periods (comparar dos periodos), top_merchants (ranking de comercios), recurring (cargos periódicos, suscripciones), unknown (ambigua, ajena al banco, análisis o consejos, o una orden de operar).
-direction: out si dice gastar, pagar o comprar; in si dice ingresar o cobrar. Omítelo si no aplica.
-period y compare_period (el de referencia): hoy, ayer, este_mes, mes_pasado, esta_semana, semana_pasada, este_trimestre, este_ano, ano_pasado, ultimos_7_dias, ultimos_15_dias, ultimos_30_dias, ultimos_90_dias, ultimos_365_dias, o el nombre de un mes (enero…diciembre). Sin periodo en la pregunta, omítelo.
-group_by solo si piden un desglose (por categorías, por mes). text = comercio o concepto que nombra el usuario.
-category: supermercado, restaurantes, transporte, ocio_suscripciones, salud, compras, hogar_facturas, viajes, efectivo, comisiones, bizum, transferencias, otros.
-unknown necesita reason: ambigua (falta contexto), fuera_de_alcance (no es sobre movimientos o pide análisis), operacion (pide transferir, pagar, bloquear…)."""
 
-# Ejemplos propios, que NO están en el dataset de evaluación (no se puede evaluar con lo que se enseña).
+intent: aggregate (sumar o contar), list_transactions (listar movimientos), last_transaction (el último), balance (saldo), compare_periods (comparar dos periodos), top_merchants (ranking de comercios o sitios), recurring (cargos periódicos, suscripciones), unknown (no es sobre movimientos, es ambigua, pide análisis o consejos, o pide operar).
+direction: out si habla de gastar, pagar o comprar; in si habla de ingresar o cobrar. Si no queda claro, omítelo.
+period y compare_period (el de referencia, solo en compare_periods): hoy, ayer, este_mes, mes_pasado, esta_semana, semana_pasada, este_trimestre, este_ano, ano_pasado, ultimos_7_dias, ultimos_15_dias, ultimos_30_dias, ultimos_90_dias, ultimos_365_dias, o un mes (enero…diciembre). Sin periodo en la pregunta, no pongas period.
+text: el comercio o concepto que nombra el usuario (Mercadona, Netflix). Si nombra un comercio, usa text y NO pongas category.
+category: solo si la pregunta nombra un tipo de gasto claro: supermercado, restaurantes, transporte, ocio_suscripciones, salud, compras, hogar_facturas, viajes, efectivo, comisiones, bizum, transferencias, otros.
+group_by: solo si piden un desglose (por categorías, por mes). limit: solo si piden un número o "el más…" (limit 1). sort: amount_desc para mayor o más caro, date_desc para últimos o recientes.
+unknown lleva reason: ambigua (falta contexto), fuera_de_alcance (no va de dinero, o pide análisis o consejos), operacion (pide transferir, pagar, bloquear…)."""
+
+# Ejemplos propios, con redacción distinta a la del dataset de evaluación.
 SHOTS = [
     ("¿Cuánto gasté en gasolina en agosto?",
      {"intent": "aggregate", "metric": "sum", "direction": "out", "category": "transporte", "period": "agosto"}),
     ("¿Cuál es mi saldo?", {"intent": "balance"}),
     ("Dame la receta de la tortilla", {"intent": "unknown", "reason": "fuera_de_alcance"}),
+    ("¿Cuánto llevo gastado en Zara este año?",
+     {"intent": "aggregate", "metric": "sum", "direction": "out", "text": "Zara", "period": "este_ano"}),
+    ("¿Cuáles son mis tres mayores gastos de la semana pasada?",
+     {"intent": "list_transactions", "direction": "out", "period": "semana_pasada", "sort": "amount_desc", "limit": 3}),
+    ("¿He gastado más hoy que ayer?",
+     {"intent": "compare_periods", "metric": "sum", "direction": "out", "period": "hoy", "compare_period": "ayer"}),
+    ("¿Qué pagos fijos tengo cada mes?", {"intent": "recurring", "direction": "out"}),
+    ("¿Cuántos movimientos tuve la semana pasada?",
+     {"intent": "aggregate", "metric": "count", "period": "semana_pasada"}),
+    ("Bloquea mi tarjeta", {"intent": "unknown", "reason": "operacion"}),
+    ("¿Y el año pasado?", {"intent": "unknown", "reason": "ambigua"}),
+    ("¿Cuál fue mi último pago en Spotify?",
+     {"intent": "last_transaction", "direction": "out", "text": "Spotify"}),
+    ("¿De quién he recibido más dinero este año?",
+     {"intent": "top_merchants", "direction": "in", "period": "este_ano"}),
 ]
 
 
@@ -45,9 +62,18 @@ def build_messages(question: str, today: str) -> list:
     messages = [{"role": "system", "content": SYSTEM.format(today=today)}]
     for text, query in SHOTS:
         messages.append({"role": "user", "content": text})
-        messages.append({"role": "assistant", "content": json.dumps(query, ensure_ascii=False)})
+        messages.append({"role": "assistant", "content": json.dumps(query, ensure_ascii=False, separators=(",", ":"))})
     messages.append({"role": "user", "content": question})
     return messages
+
+
+def interpret(question: str, raw: dict, today) -> tuple:
+    """Consulta cruda del modelo -> (consulta completa | None, errores). Es la tubería de producción."""
+    cleaned = contract.sanitize(raw)
+    errors = contract.model_errors(cleaned)
+    if errors:
+        return None, errors
+    return contract.expand(contract.refine(question, cleaned), today), []
 
 
 def schema_for_ollama() -> dict:
@@ -104,12 +130,14 @@ def main(argv=None) -> int:
         print(f"\nJSON inválido: {error}")
         got = None
     if got is not None:
-        problems = v.check(got, v.SCHEMA) or contract.model_errors(got)
-        print("\nValidación:", "correcta" if not problems else problems)
+        problems = v.check(got, v.SCHEMA)
+        final = None
         if not problems:
             today_date = date.fromisoformat(today)
-            final = contract.expand(contract.refine(question, got), today_date)
-            print("Consulta completa (tras palabras clave y fechas):")
+            final, problems = interpret(question, got, today_date)
+        print("\nValidación:", "correcta" if not problems else problems)
+        if final is not None:
+            print("Consulta completa (tras limpiar, palabras clave y fechas):")
             print(json.dumps({k: x for k, x in final.items() if x is not None}, ensure_ascii=False))
             if expected is not None:
                 want = contract.expand(expected, today_date)

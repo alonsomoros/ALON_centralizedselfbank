@@ -43,3 +43,26 @@ El modelo se descarga de memoria tras 5 min sin uso (`keep_alive` por defecto): 
 6. `OLLAMA_KEEP_ALIVE=-1` para evitar el arranque en frío (cabe en RAM).
 
 Propuesta: contrato v2 (periodos como etiquetas, solo campos no nulos, `clarification` en código) antes de medir modelos en M9.
+
+---
+
+# M7b — Contrato v2 (mismo modelo, mismas 4 preguntas)
+
+Cambios: periodos como etiquetas (el código calcula las fechas), solo campos con valor, `unknown` con `reason` y mensaje fijo, categoría por palabras clave en código. Detalle en `bench/consultas/convenciones.md`.
+
+| Medida | v1 | v2 |
+|---|---|---|
+| Tokens generados | 85–116 | 14–33 |
+| Generación (caliente) | 8–11,6 s | 1,2–2,9 s |
+| Llamada total caliente | 8,4–11,8 s | 1,4–2,4 s |
+| Llamada total en frío | 23 s | 14 s (3,1 s de carga + 8 s leyendo el prompt) |
+| Lectura del prompt caliente (otra pregunta) | 0,2–0,3 s | 0,2–0,3 s |
+
+| Pregunta | Resultado v2 |
+|---|---|
+| q001 | idéntica a lo esperado |
+| q003 | idéntica (categoría `bizum` por palabra clave) |
+| q006 | fechas correctas; faltaban `metric` y `direction` → `metric` pasa a `sum` por defecto en `compare_periods` y el prompt aclara `direction` (pendiente de re-medir en la Pi) |
+| q013 | intent correcto; `reason` `ambigua` en vez de `fuera_de_alcance` (se puntuará aparte del intent) |
+
+Ollama aceptó el esquema con campos opcionales y enums. Sigue pendiente: `OLLAMA_KEEP_ALIVE=-1` (evita el arranque en frío) y el reparto desarrollo/prueba del dataset antes de ajustar más el prompt.

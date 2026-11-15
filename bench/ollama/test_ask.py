@@ -39,6 +39,23 @@ class AskTest(unittest.TestCase):
         for n in ask.contract.LAST_DAYS:
             self.assertIn(f"ultimos_{n}_dias", ask.SYSTEM)
 
+    def test_interpret_tuberia_completa(self):
+        from datetime import date
+        raw = {"intent": "last_transaction", "reason": "ambigua"}  # reason sobra y se ignora
+        full, errors = ask.interpret("¿Cuál fue mi último Bizum?", raw, date(2026, 11, 15))
+        self.assertEqual(errors, [])
+        self.assertEqual((full["intent"], full["category"], full["direction"]), ("last_transaction", "bizum", "any"))
+
+    def test_interpret_rechaza_lo_irreparable(self):
+        from datetime import date
+        full, errors = ask.interpret("x", {"intent": "aggregate"}, date(2026, 11, 15))
+        self.assertIsNone(full)
+        self.assertTrue(errors)
+
+    def test_ejemplos_en_json_compacto(self):
+        for m in ask.build_messages("x", "2026-11-15")[2:-1:2]:
+            self.assertNotIn(", ", m["content"])
+
     def test_compare(self):
         self.assertEqual(ask.compare({"a": 1, "b": 2}, {"a": 1, "b": 3}), ["b"])
         self.assertEqual(ask.compare({"a": 1}, {"a": 1}), [])

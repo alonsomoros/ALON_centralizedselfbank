@@ -48,11 +48,13 @@ def score(item: dict, content: str) -> dict:
     result["json_ok"] = True
     expected = item["expected"]
     result["intent_ok"] = got.get("intent") == expected["intent"]
-    if v.check(got, v.SCHEMA) or contract.model_errors(got):
+    if v.check(got, v.SCHEMA):
+        return result
+    today = date.fromisoformat(item["today"])
+    final, errors = ask.interpret(item["question"], got, today)
+    if errors:
         return result
     result["schema_ok"] = True
-    today = date.fromisoformat(item["today"])
-    final = contract.expand(contract.refine(item["question"], got), today)
     want = contract.expand(expected, today)
     if expected["intent"] == "unknown":
         result["reason_ok"] = got.get("reason") == expected["reason"]
@@ -138,6 +140,18 @@ def unload(model: str):
         pass
 
 
+def wait_cool(target_c: float, timeout_s: float = 600):
+    """Espera (con tope) a que la temperatura baje de target_c. 0 = no esperar."""
+    waited = 0
+    while target_c and waited < timeout_s:
+        temp = sample()["temp_c"]
+        if temp is None or temp <= target_c:
+            return
+        print(f"  esperando a que la Pi baje de {target_c} °C (ahora {temp} °C)…")
+        time.sleep(15)
+        waited += 15
+
+
 def run_one(model, item, use_format, think) -> dict:
     started = time.perf_counter()
     reply = ask.call(model, ask.build_messages(item["question"], item["today"]), use_format, think, keep_alive="30m")
@@ -161,6 +175,8 @@ def main(argv=None) -> int:
     parser.add_argument("--no-format", action="store_true")
     parser.add_argument("--no-think", action="store_true")
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--pause", type=float, default=0, help="segundos de pausa entre llamadas (simula uso real)")
+    parser.add_argument("--cooldown", type=float, default=0, help="espera a que la Pi baje de esta temperatura antes de empezar")
     args = parser.parse_args(argv)
 
     items = [item for _, item in v.load(ask.CONSULTAS / "questions.jsonl")]
@@ -172,6 +188,7 @@ def main(argv=None) -> int:
     use_format = not args.no_format
 
     print(f"Modelo {args.model} | conjunto {args.split} ({len(chosen)} preguntas x {args.repeats}) | format={use_format} think={think}")
+    wait_cool(args.cooldown)
     before = sample()
     print(f"Antes: {before}")
     cold = run_one(args.model, chosen[0], use_format, think)  # calentamiento: carga el modelo y la caché del prefijo
@@ -183,6 +200,7 @@ def main(argv=None) -> int:
             row = run_one(args.model, item, use_format, think)
             row["repeat"] = repeat
             rows.append(row)
+            time.sleep(args.pause)
         print(f"  repetición {repeat + 1}/{args.repeats} hecha")
     unload(args.model)
 

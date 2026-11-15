@@ -126,6 +126,29 @@ def model_errors(q: dict) -> list:
     return errors
 
 
+def sanitize(q: dict) -> dict:
+    """Quita los campos que no corresponden al intent (lector tolerante).
+
+    Un modelo pequeño mezcla campos de otros intents; se ignoran en vez de rechazar toda la
+    consulta. No inventa ni corrige valores: los campos obligatorios que falten siguen siendo error.
+    """
+    result = copy.deepcopy(q)
+    intent = result.get("intent")
+    if intent == "unknown":
+        keep = {"intent", "reason"}
+    elif intent == "balance":
+        keep = {"intent"}
+    else:
+        keep = {"intent", "direction", "category", "text", "period", "min_amount", "max_amount", "sort", "limit"}
+        if intent in ("aggregate", "compare_periods"):
+            keep.add("metric")
+        if intent in ("aggregate", "top_merchants"):
+            keep.add("group_by")
+        if intent == "compare_periods":
+            keep.add("compare_period")
+    return {k: x for k, x in result.items() if k in keep}
+
+
 def refine(question: str, q: dict) -> dict:
     """Devuelve una copia con la categoría deducida por palabras clave, si el modelo no la puso."""
     result = copy.deepcopy(q)
@@ -150,6 +173,8 @@ def expand(q: dict, today: date) -> dict:
         full["compare_from"], full["compare_to"] = (d.isoformat() for d in resolve_period(q["compare_period"], today))
     if full["intent"] == "top_merchants":
         full["group_by"] = "merchant"
+    if full["intent"] in ("top_merchants", "recurring") and q.get("direction") is None:
+        full["direction"] = "out"  # un ranking de comercios y los cargos periódicos son gastos
     if full["intent"] == "compare_periods" and full["metric"] is None:
         full["metric"] = "sum"  # comparar importes es el caso habitual
     if full["intent"] == "unknown":

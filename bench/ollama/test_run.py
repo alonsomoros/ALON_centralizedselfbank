@@ -35,6 +35,15 @@ class ScoreTest(unittest.TestCase):
         self.assertFalse(s["exact"])
         self.assertEqual(sorted(s["diff"]), ["from", "to"])
 
+    def test_campos_sobrantes_se_ignoran(self):
+        s = run.score(ITEM, reply(**ITEM["expected"], compare_period="hoy", reason="ambigua"))
+        self.assertTrue(s["schema_ok"] and s["exact"])
+
+    def test_ranking_sin_direccion_cuenta_como_gasto(self):
+        item = {"id": "r", "today": "2026-11-15", "question": "¿Dónde gasto más?",
+                "expected": {"intent": "top_merchants", "direction": "out"}}
+        self.assertTrue(run.score(item, reply(intent="top_merchants"))["exact"])
+
     def test_incoherente_cuenta_como_intent_pero_no_como_esquema(self):
         s = run.score(ITEM, reply(intent="aggregate", period="octubre"))  # falta metric
         self.assertTrue(s["json_ok"] and s["intent_ok"])
