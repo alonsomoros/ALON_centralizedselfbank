@@ -1,0 +1,184 @@
+{
+  "$comment": "Contrato de la API de selfbank (v1). Cada clave es un mensaje. Lo cumplen el servidor simulado y el real; los tests lo comprueban.",
+
+  "AskRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["question"],
+    "properties": {
+      "question": { "type": "string", "minLength": 1, "maxLength": 500 },
+      "conversation_id": { "type": "string", "minLength": 1, "maxLength": 64 }
+    }
+  },
+
+  "AskResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "question", "status", "reason", "source", "interpretation", "answer", "timing_ms"],
+    "properties": {
+      "id": { "type": "string", "pattern": "^ans_[0-9a-f]{12}$" },
+      "question": { "type": "string" },
+      "status": { "enum": ["answered", "needs_clarification", "unsupported"] },
+      "reason": { "enum": ["ambigua", "fuera_de_alcance", "operacion", null] },
+      "source": { "enum": ["rules", "model"] },
+      "interpretation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "chips", "text", "query"],
+        "properties": {
+          "title": { "type": "string" },
+          "chips": { "type": "array", "items": { "type": "string" } },
+          "text": { "type": "string" },
+          "query": {
+            "type": "object",
+            "required": ["intent", "metric", "group_by", "direction", "category", "text", "from", "to", "compare_from", "compare_to", "min_amount", "max_amount", "sort", "limit", "clarification"]
+          }
+        }
+      },
+      "answer": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "kind", "data"],
+        "properties": {
+          "text": { "type": "string" },
+          "kind": { "enum": ["scalar", "table", "none"] },
+          "data": { "type": ["object", "null"] }
+        }
+      },
+      "timing_ms": { "type": "integer", "minimum": 0 },
+      "mock": { "type": "boolean" }
+    }
+  },
+
+  "ScalarData": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["value", "unit"],
+    "properties": { "value": { "type": "number" }, "unit": { "enum": ["EUR", "count"] } }
+  },
+
+  "TableData": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["columns", "rows"],
+    "properties": {
+      "columns": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "label", "type"],
+          "properties": {
+            "key": { "type": "string" },
+            "label": { "type": "string" },
+            "type": { "enum": ["text", "date", "money", "count"] }
+          }
+        }
+      },
+      "rows": { "type": "array", "items": { "type": "array" } }
+    }
+  },
+
+  "Status": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["ok", "version", "mode", "model", "data", "consent"],
+    "properties": {
+      "ok": { "type": "boolean" },
+      "version": { "type": "string" },
+      "mode": { "enum": ["mock", "live"] },
+      "model": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "loaded"],
+        "properties": { "name": { "type": "string" }, "loaded": { "type": "boolean" } }
+      },
+      "data": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["last_sync", "data_through", "accounts"],
+        "properties": {
+          "last_sync": { "type": ["string", "null"] },
+          "data_through": { "type": ["string", "null"] },
+          "accounts": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "consent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["valid_until", "days_left"],
+        "properties": {
+          "valid_until": { "type": ["string", "null"] },
+          "days_left": { "type": ["integer", "null"] }
+        }
+      }
+    }
+  },
+
+  "Suggestions": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["suggestions"],
+    "properties": {
+      "suggestions": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "label", "question"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "label": { "type": "string", "minLength": 1 },
+            "question": { "type": "string", "minLength": 1, "maxLength": 500 }
+          }
+        }
+      }
+    }
+  },
+
+  "FeedbackRequest": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["answer_id", "verdict"],
+    "properties": {
+      "answer_id": { "type": "string", "pattern": "^ans_[0-9a-f]{12}$" },
+      "verdict": { "enum": ["ok", "wrong"] },
+      "correction": { "type": "string", "maxLength": 300 }
+    }
+  },
+
+  "FeedbackResponse": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["stored"],
+    "properties": { "stored": { "type": "boolean" } }
+  },
+
+  "Health": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["ok"],
+    "properties": { "ok": { "type": "boolean" } }
+  },
+
+  "Error": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["error"],
+    "properties": {
+      "error": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "enum": ["unauthorized", "invalid_request", "not_found", "method_not_allowed", "payload_too_large", "unsupported_media_type", "model_busy", "internal"]
+          },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
