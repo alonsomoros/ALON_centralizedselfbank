@@ -24,25 +24,14 @@ import time
 from collections import OrderedDict
 from datetime import date, datetime, timedelta, timezone
 
-from selfbank import answers, contract, describe, router, rules
-from selfbank.api.server import ApiError, make_server
+from selfbank import answers, describe, pipeline, router
+from selfbank.api.server import ApiError, make_server, read_token_file  # noqa: F401
+from selfbank.suggestions import SUGGESTIONS, as_list
 
 VERSION = "0.1.0"
 MERCHANTS = ["SUPERMERCADO DEMO", "CAFETERIA EJEMPLO", "TIENDA ONLINE DEMO", "GASOLINERA EJEMPLO",
              "SERVICIO STREAMING DEMO", "FARMACIA EJEMPLO", "RESTAURANTE DEMO", "LIBRERIA EJEMPLO"]
 CATEGORIES = ["supermercado", "restaurantes", "transporte", "ocio_suscripciones", "salud", "compras", "hogar_facturas"]
-
-SUGGESTIONS = [
-    ("spend_month", "Gasto este mes", "¿Cuánto llevo gastado este mes?"),
-    ("income_month", "Ingresos este mes", "¿Cuánto me han ingresado este mes?"),
-    ("by_category", "Gasto por categoría", "Dime el gasto por categorías de los últimos 30 días"),
-    ("last_bizum", "Último Bizum", "¿Cuál fue mi último Bizum?"),
-    ("balance", "Saldo", "¿Cuál es mi saldo?"),
-    ("subscriptions", "Suscripciones", "¿Qué suscripciones pago?"),
-    ("top_places", "Dónde gasto más", "¿Dónde gasto más dinero?"),
-    ("compare", "Este mes frente al anterior", "¿Gasté más este mes que el mes pasado?"),
-]
-
 
 class MockEngine:
     def __init__(self, today: date = None, model_delay: float = 3.0, keep: int = 500):
@@ -66,7 +55,7 @@ class MockEngine:
         }
 
     def suggestions(self) -> list:
-        return [{"id": i, "label": label, "question": question} for i, label, question in SUGGESTIONS]
+        return as_list()
 
     def feedback(self, answer_id: str, verdict: str, correction) -> bool:
         with self._state:
@@ -94,16 +83,12 @@ class MockEngine:
             unknown_words = router.unresolved(question)
             if unknown_words:
                 model_query["text"] = " ".join(unknown_words)
-        cleaned = contract.sanitize(rules.apply(question, contract.sanitize(model_query)))
-        if contract.model_errors(cleaned):
-            cleaned = {"intent": "unknown", "reason": "ambigua"}
-        query = contract.expand(contract.refine(question, cleaned), today)
+        query, reason = pipeline.to_query(question, model_query, today)
 
         result = None if query["intent"] == "unknown" else fake_result(query, question, today)
         answer = answers.render(query, result)
-        status, reason = "answered", None
+        status = "answered"
         if query["intent"] == "unknown":
-            reason = cleaned["reason"]
             status = "needs_clarification" if reason == "ambigua" else "unsupported"
 
         answer_id = "ans_" + secrets.token_hex(6)
@@ -129,18 +114,6 @@ def month_keys(end: date, n: int) -> list:
         if month == 0:
             year, month = year - 1, 12
     return keys
-
-
-def read_token_file(path: str) -> str:
-    """Lee el token de un fichero (mejor que ponerlo en la línea de comandos, donde `ps` lo muestra)."""
-    mode = os.stat(path).st_mode
-    if os.name == "posix" and mode & 0o077:
-        raise PermissionError(f"{path} es legible por otros usuarios: ejecuta chmod 600 {path}")
-    with open(path, encoding="utf-8") as handle:
-        token = handle.read().strip()
-    if not token:
-        raise ValueError(f"{path} está vacío")
-    return token
 
 
 def fake_result(query: dict, question: str, today: date) -> dict:

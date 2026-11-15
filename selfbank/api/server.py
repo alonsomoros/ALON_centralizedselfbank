@@ -13,6 +13,7 @@ Los errores se devuelven como {"error": {"code", "message"}}.
 
 import hmac
 import json
+import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +22,18 @@ from selfbank.schema import check
 
 SCHEMAS = json.loads((Path(__file__).parent / "schemas.json").read_text(encoding="utf-8"))
 MAX_BODY = 8 * 1024
+
+
+def read_token_file(path: str) -> str:
+    """Lee el token de un fichero (mejor que ponerlo en la línea de comandos, donde `ps` lo muestra)."""
+    mode = os.stat(path).st_mode
+    if os.name == "posix" and mode & 0o077:
+        raise PermissionError(f"{path} es legible por otros usuarios: ejecuta chmod 600 {path}")
+    with open(path, encoding="utf-8") as handle:
+        token = handle.read().strip()
+    if not token:
+        raise ValueError(f"{path} está vacío")
+    return token
 
 
 class ApiError(Exception):
