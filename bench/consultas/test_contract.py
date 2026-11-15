@@ -98,6 +98,18 @@ class ExpandTest(unittest.TestCase):
     def test_top_merchants_pone_group_by(self):
         self.assertEqual(c.expand({"intent": "top_merchants"}, TODAY)["group_by"], "merchant")
 
+    def test_compare_periods_sin_metric_es_sum(self):
+        q = {"intent": "compare_periods", "period": "este_mes", "compare_period": "mes_pasado"}
+        self.assertEqual(c.model_errors(q), [])
+        self.assertEqual(c.expand(q, TODAY)["metric"], "sum")
+
+    def test_compare_periods_respeta_count(self):
+        q = {"intent": "compare_periods", "metric": "count", "period": "este_mes", "compare_period": "mes_pasado"}
+        self.assertEqual(c.expand(q, TODAY)["metric"], "count")
+
+    def test_aggregate_sigue_exigiendo_metric(self):
+        self.assertTrue(c.model_errors({"intent": "aggregate"}))
+
     def test_unknown_usa_mensaje_fijo(self):
         for reason, text in c.MESSAGES.items():
             self.assertEqual(c.expand({"intent": "unknown", "reason": reason}, TODAY)["clarification"], text)

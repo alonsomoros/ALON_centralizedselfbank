@@ -26,7 +26,7 @@ SYSTEM = """Eres un traductor: conviertes una pregunta sobre cuentas bancarias e
 Escribe SOLO los campos que apliquen; no pongas campos vacíos ni null. Las fechas no las calculas: usa una etiqueta en "period".
 Hoy es {today}.
 intent: aggregate (sumar o contar), list_transactions (listar movimientos), last_transaction (el último), balance (saldo), compare_periods (comparar dos periodos), top_merchants (ranking de comercios), recurring (cargos periódicos, suscripciones), unknown (ambigua, ajena al banco, análisis o consejos, o una orden de operar).
-direction: out = gastos, in = ingresos. Omítelo si no aplica.
+direction: out si dice gastar, pagar o comprar; in si dice ingresar o cobrar. Omítelo si no aplica.
 period y compare_period (el de referencia): hoy, ayer, este_mes, mes_pasado, esta_semana, semana_pasada, este_trimestre, este_ano, ano_pasado, ultimos_7_dias, ultimos_15_dias, ultimos_30_dias, ultimos_90_dias, ultimos_365_dias, o el nombre de un mes (enero…diciembre). Sin periodo en la pregunta, omítelo.
 group_by solo si piden un desglose (por categorías, por mes). text = comercio o concepto que nombra el usuario.
 category: supermercado, restaurantes, transporte, ocio_suscripciones, salud, compras, hogar_facturas, viajes, efectivo, comisiones, bizum, transferencias, otros.
@@ -61,11 +61,13 @@ def compare(expected: dict, got: dict) -> list:
     return [k for k in expected if expected[k] != got.get(k)]
 
 
-def call(model: str, messages: list, use_format: bool) -> dict:
+def call(model: str, messages: list, use_format: bool, think=None, keep_alive: str = "5m") -> dict:
     body = {
-        "model": model, "messages": messages, "stream": False, "keep_alive": "5m",
+        "model": model, "messages": messages, "stream": False, "keep_alive": keep_alive,
         "options": {"temperature": 0, "num_ctx": 2048, "num_predict": 256},
     }
+    if think is not None:  # False desactiva el razonamiento de modelos tipo Qwen3
+        body["think"] = think
     if use_format:
         body["format"] = schema_for_ollama()
     request = urllib.request.Request(OLLAMA, json.dumps(body).encode(), {"Content-Type": "application/json"})
@@ -83,6 +85,7 @@ def main(argv=None) -> int:
     parser.add_argument("--model", default="qwen2.5:1.5b")
     parser.add_argument("--today", default="2026-11-15")
     parser.add_argument("--no-format", action="store_true", help="no restringir la salida con el esquema")
+    parser.add_argument("--no-think", action="store_true", help="desactiva el razonamiento (qwen3, qwen3.5…)")
     args = parser.parse_args(argv)
 
     expected, question, today = None, args.question, args.today
@@ -91,7 +94,7 @@ def main(argv=None) -> int:
             expected, question, today = item["expected"], item["question"], item["today"]
     print(f"Pregunta: {question}   (hoy = {today})")
 
-    reply = call(args.model, build_messages(question, today), not args.no_format)
+    reply = call(args.model, build_messages(question, today), not args.no_format, False if args.no_think else None)
     content = reply["message"]["content"]
     print("Respuesta cruda del modelo:\n" + content)
 

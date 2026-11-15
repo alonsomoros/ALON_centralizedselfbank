@@ -104,10 +104,10 @@ def model_errors(q: dict) -> list:
             errors.append(f"balance no admite campos (sobran: {extra})")
         return errors
 
-    if intent in ("aggregate", "compare_periods"):
+    if intent == "aggregate":
         if "metric" not in present:
-            errors.append(f"{intent} exige metric")
-    elif "metric" in present:
+            errors.append("aggregate exige metric")
+    elif intent != "compare_periods" and "metric" in present:
         errors.append(f"{intent} no admite metric")
     if intent == "compare_periods":
         if "period" not in present or "compare_period" not in present:
@@ -150,6 +150,8 @@ def expand(q: dict, today: date) -> dict:
         full["compare_from"], full["compare_to"] = (d.isoformat() for d in resolve_period(q["compare_period"], today))
     if full["intent"] == "top_merchants":
         full["group_by"] = "merchant"
+    if full["intent"] == "compare_periods" and full["metric"] is None:
+        full["metric"] = "sum"  # comparar importes es el caso habitual
     if full["intent"] == "unknown":
         full["clarification"] = MESSAGES[q["reason"]]
     return full
