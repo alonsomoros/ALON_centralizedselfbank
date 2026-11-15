@@ -95,8 +95,9 @@ Decisión tuya antes de empezar 0.A: ¿la autorización se hará desde tu PC (op
 - [x] 0.A cuenta y aplicación sandbox (M2, M3)
 - [x] 0.B lista de bancos y cobertura (M4: Santander cubierto)
 - [x] Aplicación de producción registrada y activada con una cuenta vinculada
-- [ ] 0.A2 ensayo del flujo de autorización en sandbox (M5a)
-- [ ] 0.A3 autorización real de Santander e importación en bruto (M5b)
+- [x] 0.A2 ensayo del flujo de autorización en sandbox (M5a)
+- [x] 0.A3 autorización real de Santander e importación en bruto (M5b)
+- [ ] 0.A4 copia cifrada de los datos en bruto y radiografía del formato de `remittance_information` (M5c)
 - [ ] 0.D dataset de preguntas (M6)
 - [ ] 0.C benchmark en la Pi (M7–M9)
 - [ ] Contrato de la API del chat y servidor simulado (M10a)
