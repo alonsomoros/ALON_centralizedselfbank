@@ -30,6 +30,12 @@ class ResolveTagTest(unittest.TestCase):
     def test_mes_pasado(self): self.check("mes_pasado", "2026-10-01", "2026-10-31")
     def test_esta_semana(self): self.check("esta_semana", "2026-11-09", "2026-11-15")
     def test_semana_pasada(self): self.check("semana_pasada", "2026-11-02", "2026-11-08")
+    def test_este_trimestre(self): self.check("este_trimestre", "2026-10-01", "2026-11-15")
+    def test_trimestre_primer_dia(self):
+        self.assertEqual(
+            tuple(d.isoformat() for d in v.resolve_tag("este_trimestre", date(2026, 3, 31))), ("2026-01-01", "2026-03-31")
+        )
+    def test_ultimos_365_dias(self): self.check("ultimos_dias:365", "2025-11-16", "2026-11-15")
     def test_este_ano(self): self.check("este_ano", "2026-01-01", "2026-11-15")
     def test_ano_pasado(self): self.check("ano_pasado", "2025-01-01", "2025-12-31")
     def test_ultimos_30_dias(self): self.check("ultimos_dias:30", "2026-10-17", "2026-11-15")

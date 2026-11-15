@@ -80,6 +80,8 @@ def resolve_tag(tag: str, today: date):
     if name == "semana_pasada":
         monday = today - timedelta(days=today.weekday() + 7)
         return monday, monday + timedelta(days=6)
+    if name == "este_trimestre":
+        return date(today.year, 3 * ((today.month - 1) // 3) + 1, 1), today
     if name == "este_ano":
         return date(today.year, 1, 1), today
     if name == "ano_pasado":

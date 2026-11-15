@@ -22,10 +22,22 @@ Contrato entre el modelo (que traduce) y el ejecutor (que calcula). El esquema f
 | el mes pasado | mes natural anterior completo |
 | esta semana | lunes → hoy |
 | la semana pasada | lunes → domingo anteriores |
+| este trimestre | día 1 del trimestre natural (ene/abr/jul/oct) → hoy |
 | este año | 1 de enero → hoy |
+| el último año / últimos 12 meses | últimos 365 días contando hoy |
 | el año pasado | año natural anterior completo |
 | los últimos N días | hoy − (N − 1) → hoy (N días contando hoy) |
 | «en octubre» (mes sin año) | ese mes del año más reciente que no empiece en el futuro |
+
+Sin soporte (dan `unknown`): «este fin de semana», quincenas y cualquier periodo no listado.
+
+## Comparaciones
+
+En `compare_periods`, `from`/`to` es el periodo por el que se pregunta y `compare_from`/`compare_to` el de referencia («¿gasté más en octubre que en septiembre?» → octubre en `from`, septiembre en `compare`). Ambos periodos van completos tal como los resuelve la tabla; la respuesta del ejecutor añade además el tramo equivalente (mismos días) cuando el periodo en curso está incompleto.
+
+## Solo lectura
+
+Selfbank solo consulta. Cualquier orden de operar (transferir, pagar, bloquear tarjeta…) es `unknown`, con una `clarification` que lo explica.
 
 ## Intents
 
