@@ -44,3 +44,23 @@
 {"id":"q044","today":"2026-11-15","question":"¿Cuándo fue la última vez que fui al burguer king?","split":"holdout","expected":{"intent":"last_transaction","text":"burguer king"}}
 {"id":"q045","today":"2026-11-15","question":"¿Qué pagos hice ayer?","split":"holdout","expected":{"intent":"list_transactions","direction":"out","period":"ayer"}}
 {"id":"q046","today":"2026-11-15","question":"Busca los Bizums que le he enviado a Juan","split":"holdout","expected":{"intent":"list_transactions","direction":"out","category":"bizum","text":"Juan"}}
+{"id":"q047","today":"2026-11-15","question":"¿Cuánto gasté en transporte la semana pasada?","split":"fresh","expected":{"intent":"aggregate","metric":"sum","category":"transporte","direction":"out","period":"semana_pasada"}}
+{"id":"q048","today":"2026-11-15","question":"Enséñame los ingresos de más de 1000 euros de este año","split":"fresh","expected":{"intent":"list_transactions","min_amount":1000,"direction":"in","period":"este_ano"}}
+{"id":"q049","today":"2026-11-15","question":"¿Cuál fue mi última compra en Zara?","split":"fresh","expected":{"intent":"last_transaction","text":"Zara","direction":"out"}}
+{"id":"q050","today":"2026-11-15","question":"¿Cuántas veces pedí Glovo el mes pasado?","split":"fresh","expected":{"intent":"aggregate","metric":"count","text":"Glovo","direction":"out","period":"mes_pasado"}}
+{"id":"q051","today":"2026-11-15","question":"Compara mis ingresos de este trimestre con el trimestre pasado","split":"fresh","expected":{"intent":"compare_periods","metric":"sum","direction":"in","period":"este_trimestre","compare_period":"trimestre_pasado"}}
+{"id":"q052","today":"2026-11-15","question":"Dime los 3 sitios donde más gasté en octubre","split":"fresh","expected":{"intent":"top_merchants","limit":3,"direction":"out","period":"octubre"}}
+{"id":"q053","today":"2026-11-15","question":"¿Qué recibos domiciliados tengo activos?","split":"fresh","expected":{"intent":"recurring","direction":"out"}}
+{"id":"q054","today":"2026-11-15","question":"¿Cuánto me gasté ayer en supermercados?","split":"fresh","expected":{"intent":"aggregate","metric":"sum","category":"supermercado","direction":"out","period":"ayer"}}
+{"id":"q055","today":"2026-11-15","question":"Muéstrame mis últimos 10 movimientos","split":"fresh","expected":{"intent":"list_transactions","sort":"date_desc","limit":10}}
+{"id":"q056","today":"2026-11-15","question":"¿Cuánto llevo pagado en luz y agua este año?","split":"fresh","expected":{"intent":"aggregate","metric":"sum","category":"hogar_facturas","direction":"out","period":"este_ano"}}
+{"id":"q057","today":"2026-11-15","question":"¿Cuál ha sido mi mayor ingreso en los últimos 30 días?","split":"fresh","expected":{"intent":"list_transactions","sort":"amount_desc","limit":1,"direction":"in","period":"ultimos_30_dias"}}
+{"id":"q058","today":"2026-11-15","question":"Evolución mensual de mis gastos este año","split":"fresh","expected":{"intent":"aggregate","metric":"sum","group_by":"month","direction":"out","period":"este_ano"}}
+{"id":"q059","today":"2026-11-15","question":"¿Cuánto dinero me ha enviado María por Bizum en total?","split":"fresh","expected":{"intent":"aggregate","metric":"sum","category":"bizum","text":"María","direction":"in"}}
+{"id":"q060","today":"2026-11-15","question":"Gastos en farmacia de entre 10 y 40 euros en los últimos 365 días","split":"fresh","expected":{"intent":"list_transactions","category":"salud","min_amount":10,"max_amount":40,"direction":"out","period":"ultimos_365_dias"}}
+{"id":"q061","today":"2026-11-15","question":"¿En qué gasté más dinero en agosto, en viajes o en restaurantes?","split":"fresh","expected":{"intent":"unknown","reason":"fuera_de_alcance"}}
+{"id":"q062","today":"2026-11-15","question":"Cancela mi suscripción de Spotify","split":"fresh","expected":{"intent":"unknown","reason":"operacion"}}
+{"id":"q063","today":"2026-11-15","question":"¿Cuánto he gastado de media al día este mes?","split":"fresh","expected":{"intent":"unknown","reason":"fuera_de_alcance"}}
+{"id":"q064","today":"2026-11-15","question":"¿Y cuánto fue en efectivo?","split":"fresh","expected":{"intent":"unknown","reason":"ambigua"}}
+{"id":"q065","today":"2026-11-15","question":"¿Cuándo fue la última vez que cobré la nómina?","split":"fresh","expected":{"intent":"last_transaction","text":"nómina","direction":"in"}}
+{"id":"q066","today":"2026-11-15","question":"¿Gasté más en gasolina en septiembre que en octubre?","split":"fresh","expected":{"intent":"compare_periods","metric":"sum","category":"transporte","direction":"out","period":"septiembre","compare_period":"octubre"}}

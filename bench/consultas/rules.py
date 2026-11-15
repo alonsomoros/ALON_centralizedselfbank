@@ -43,6 +43,7 @@ PERIOD_PATTERNS = [
     (r"\besta semana\b", "esta_semana"),
     (r"\bsemana (?:pasada|anterior)\b", "semana_pasada"),
     (r"\beste trimestre\b", "este_trimestre"),
+    (r"\btrimestre (?:pasado|anterior)\b", "trimestre_pasado"),
     (r"\beste ano\b|\bllevo de ano\b|\blo que va de ano\b", "este_ano"),
     (r"\bano (?:pasado|anterior)\b", "ano_pasado"),
     (r"\bultimo mes\b|\bultimos 30 dias\b", "ultimos_30_dias"),
@@ -163,6 +164,60 @@ def clean_text(q: dict) -> dict:
     return result
 
 
+# ---- intents con señales inequívocas ----------------------------------------------------------------
+
+GREETINGS = {"hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "que tal", "como estas", "gracias", "adios", "hasta luego"}
+OPERATION_VERBS = re.compile(r"^(?:cancela|bloquea|desbloquea|transfiere|transfiereme|paga|anula|desactiva|activa|manda|envia|ingresa|domicilia)\b")
+FOLLOW_UP = re.compile(r"^y\b")  # «¿Y el mes anterior?»: sin contexto de conversación no se puede resolver
+LAST_ONE = re.compile(r"\bultim[oa] (?!mes\b|ano\b|semana\b|dias?\b|vez\b)\w+|\bla ultima vez\b")
+COUNT_CUE = re.compile(r"\bcuant(?:os|as) (?:veces|pedidos|compras|pagos|movimientos)\b|\bnumero de\b|\bcuantas veces\b")
+GROUP_CUES = [
+    (re.compile(r"\bpor categorias?\b"), "category"),
+    (re.compile(r"\bpor mes(?:es)?\b|\bmensual(?:es|mente)?\b|\bcada mes\b|\bevolucion\b|\bmes con mas\b"), "month"),
+    (re.compile(r"\bpor (?:concepto|comercio|tienda|sitio)s?\b"), "merchant"),
+]
+GROUPABLE = {"aggregate", "list_transactions", "compare_periods"}
+
+
+def forced_unknown(question: str):
+    """unknown inequívoco por la forma de la pregunta (seguimiento, orden de operar, saludo)."""
+    text = normalize(question).strip(" \u00bf?!\u00a1.,")
+    if FOLLOW_UP.match(text):
+        return {"intent": "unknown", "reason": "ambigua"}
+    if OPERATION_VERBS.match(text):
+        return {"intent": "unknown", "reason": "operacion"}
+    if text in GREETINGS:
+        return {"intent": "unknown", "reason": "fuera_de_alcance"}
+    return None
+
+
+def group_by_cue(question: str):
+    text = normalize(question)
+    for pattern, group in GROUP_CUES:
+        if pattern.search(text):
+            return group
+    return None
+
+
+def route(question: str, q: dict) -> dict:
+    """Corrige el intent cuando la pregunta tiene una señal inequívoca; si no, respeta al modelo."""
+    forced = forced_unknown(question)
+    if forced:
+        return forced
+    intent = q.get("intent")
+    text = normalize(question)
+    group = group_by_cue(question)
+    if group and intent in GROUPABLE and not (intent == "compare_periods" and len(periods(question)) >= 2):
+        result = dict(q, intent="aggregate", group_by=group)
+        result.setdefault("metric", "count" if COUNT_CUE.search(text) else "sum")
+        if intent == "compare_periods":
+            result.pop("compare_period", None)
+        return result
+    if LAST_ONE.search(text) and intent in ("list_transactions", "aggregate", "top_merchants", "compare_periods"):
+        return {k: x for k, x in q.items() if k not in ("metric", "group_by", "sort", "limit", "compare_period")} | {"intent": "last_transaction"}
+    return q
+
+
 # ---- aplicar --------------------------------------------------------------------------------------
 
 STRUCTURAL = ["direction", "period", "compare_period", "min_amount", "max_amount", "sort", "limit"]
@@ -170,6 +225,7 @@ STRUCTURAL = ["direction", "period", "compare_period", "min_amount", "max_amount
 
 def apply(question: str, q: dict) -> dict:
     """Devuelve la consulta con los campos de vocabulario cerrado fijados por la pregunta."""
+    q = route(question, q)
     intent = q.get("intent")
     if intent in ("unknown", "balance"):
         return dict(q)
@@ -187,6 +243,9 @@ def apply(question: str, q: dict) -> dict:
         result["direction"] = sense
     result.update(amounts(question))
     result.update(ordering(question, intent, result.get("group_by")))
+    if intent == "last_transaction":  # «el último» ya implica orden y límite
+        result.pop("sort", None)
+        result.pop("limit", None)
     if intent == "aggregate" and not result.get("group_by"):
         result.pop("sort", None)
         result.pop("limit", None)

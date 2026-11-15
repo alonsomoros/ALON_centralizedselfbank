@@ -19,7 +19,7 @@ MONTHS = [
 ]
 LAST_DAYS = [7, 15, 30, 90, 365]
 PERIODS = (
-    ["hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "este_ano", "ano_pasado"]
+    ["hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "trimestre_pasado", "este_ano", "ano_pasado"]
     + [f"ultimos_{n}_dias" for n in LAST_DAYS]
     + MONTHS
 )
@@ -74,6 +74,9 @@ def resolve_period(tag: str, today: date):
         return monday, monday + timedelta(days=6)
     if tag == "este_trimestre":
         return date(today.year, 3 * ((today.month - 1) // 3) + 1, 1), today
+    if tag == "trimestre_pasado":
+        end = date(today.year, 3 * ((today.month - 1) // 3) + 1, 1) - timedelta(days=1)
+        return date(end.year, 3 * ((end.month - 1) // 3) + 1, 1), end
     if tag == "este_ano":
         return date(today.year, 1, 1), today
     if tag == "ano_pasado":

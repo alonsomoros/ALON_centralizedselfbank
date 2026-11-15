@@ -21,14 +21,14 @@
     "text": { "type": "string" },
     "period": {
       "enum": [
-        "hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "este_ano", "ano_pasado",
+        "hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "trimestre_pasado", "este_ano", "ano_pasado",
         "ultimos_7_dias", "ultimos_15_dias", "ultimos_30_dias", "ultimos_90_dias", "ultimos_365_dias",
         "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
       ]
     },
     "compare_period": {
       "enum": [
-        "hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "este_ano", "ano_pasado",
+        "hoy", "ayer", "este_mes", "mes_pasado", "esta_semana", "semana_pasada", "este_trimestre", "trimestre_pasado", "este_ano", "ano_pasado",
         "ultimos_7_dias", "ultimos_15_dias", "ultimos_30_dias", "ultimos_90_dias", "ultimos_365_dias",
         "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
       ]

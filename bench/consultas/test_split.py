@@ -13,7 +13,7 @@ class SplitTest(unittest.TestCase):
 
     def test_cubre_todo_y_sin_solapes(self):
         self.assertEqual(set(self.parts), {i["id"] for i in self.items})
-        self.assertEqual(set(self.parts.values()), {"dev", "test", "holdout"})
+        self.assertEqual(set(self.parts.values()), {"dev", "test", "holdout", "fresh"})
 
     def test_es_determinista(self):
         self.assertEqual(self.parts, split.assign(list(reversed(self.items))))
@@ -25,16 +25,19 @@ class SplitTest(unittest.TestCase):
 
     def test_unknown_en_ambos(self):
         unknown = {i["id"]: self.parts[i["id"]] for i in self.items if i["expected"]["intent"] == "unknown"}
-        self.assertEqual(set(unknown.values()), {"dev", "test"})
+        self.assertEqual(set(unknown.values()) - {"holdout", "fresh"}, {"dev", "test"})
 
     def test_intents_principales_en_ambos(self):
         for intent in ("aggregate", "list_transactions", "top_merchants"):
-            got = {self.parts[i["id"]] for i in self.items if i["expected"]["intent"] == intent} - {"holdout"}
+            got = {self.parts[i["id"]] for i in self.items if i["expected"]["intent"] == intent} - {"holdout", "fresh"}
             self.assertEqual(got, {"dev", "test"}, intent)
 
     def test_holdout_explicito_no_altera_el_resto(self):
         base = split.assign([i for i in self.items if "split" not in i])
-        self.assertEqual({k: x for k, x in self.parts.items() if x != "holdout"}, base)
+        self.assertEqual({k: x for k, x in self.parts.items() if x not in ("holdout", "fresh")}, base)
+
+    def test_hay_fresh(self):
+        self.assertGreaterEqual(sum(1 for x in self.parts.values() if x == "fresh"), 20)
 
     def test_hay_holdout(self):
         self.assertGreaterEqual(sum(1 for x in self.parts.values() if x == "holdout"), 5)

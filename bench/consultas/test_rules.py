@@ -163,10 +163,73 @@ class ApplyTest(unittest.TestCase):
         for q in ({"intent": "unknown", "reason": "ambigua"}, {"intent": "balance"}):
             self.assertEqual(r.apply("¿Cuánto gasté hoy?", q), q)
 
+    def test_trimestre_pasado(self):
+        self.assertEqual(r.periods("compara este trimestre con el trimestre pasado"), ["este_trimestre", "trimestre_pasado"])
+
     def test_no_modifica_la_entrada(self):
         q = {"intent": "aggregate", "metric": "sum", "period": "hoy"}
         r.apply("este mes", q)
         self.assertEqual(q, {"intent": "aggregate", "metric": "sum", "period": "hoy"})
+
+
+class RouteTest(unittest.TestCase):
+    def test_seguimiento_sin_contexto(self):
+        for q in ("¿Y el mes anterior?", "¿Y cuánto fue en efectivo?", "y el año pasado"):
+            self.assertEqual(r.forced_unknown(q), {"intent": "unknown", "reason": "ambigua"}, q)
+
+    def test_ordenes_de_operar(self):
+        for q in ("Transfiere 50 euros a Juan", "Cancela mi suscripción", "Bloquea mi tarjeta"):
+            self.assertEqual(r.forced_unknown(q), {"intent": "unknown", "reason": "operacion"}, q)
+
+    def test_saludos(self):
+        for q in ("¿Qué tal?", "Hola", "gracias"):
+            self.assertEqual(r.forced_unknown(q), {"intent": "unknown", "reason": "fuera_de_alcance"}, q)
+
+    def test_preguntas_normales_no_son_unknown(self):
+        for q in ("¿Cuánto gasté este mes?", "Enséñame mis compras", "¿Cuánto me han ingresado?", "Dime el gasto por categorías"):
+            self.assertIsNone(r.forced_unknown(q), q)
+
+    def test_desglose_por_categoria_y_mes(self):
+        got = r.route("Dime el gasto por categorías de los últimos 30 días", {"intent": "list_transactions"})
+        self.assertEqual((got["intent"], got["group_by"], got["metric"]), ("aggregate", "category", "sum"))
+        got = r.route("Gasto mensual en supermercado", {"intent": "aggregate", "metric": "sum"})
+        self.assertEqual(got["group_by"], "month")
+        got = r.route("Desglosa mis ingresos por concepto", {"intent": "list_transactions"})
+        self.assertEqual(got["group_by"], "merchant")
+
+    def test_el_mes_con_mas_gastos(self):
+        got = r.route("¿Cuál es el mes con más gastos?", {"intent": "compare_periods", "metric": "sum", "compare_period": "hoy"})
+        self.assertEqual((got["intent"], got["group_by"]), ("aggregate", "month"))
+        self.assertNotIn("compare_period", got)
+
+    def test_una_comparacion_real_no_se_desglosa(self):
+        q = {"intent": "compare_periods", "metric": "sum"}
+        self.assertEqual(r.route("Compara mi gasto mensual de este año con el año pasado", q)["intent"], "compare_periods")
+
+    def test_conteo_en_el_desglose(self):
+        got = r.route("¿Cuántos pagos por mes?", {"intent": "list_transactions"})
+        self.assertEqual(got["metric"], "count")
+
+    def test_la_ultima_vez(self):
+        got = r.route("¿Cuándo fue la última vez que fui al Burger King?", {"intent": "list_transactions", "text": "Burger King", "sort": "date_desc"})
+        self.assertEqual(got["intent"], "last_transaction")
+        self.assertEqual(got["text"], "Burger King")
+        self.assertNotIn("sort", got)
+
+    def test_el_ultimo_x(self):
+        self.assertEqual(r.route("¿Cuál fue mi último pago?", {"intent": "aggregate", "metric": "sum"})["intent"], "last_transaction")
+
+    def test_ultimo_periodo_no_es_ultimo_movimiento(self):
+        for q in ("gasto del último mes", "gasto del último año", "la última semana", "los últimos 5 pagos"):
+            self.assertNotEqual(r.route(q, {"intent": "aggregate", "metric": "sum"})["intent"], "last_transaction", q)
+
+    def test_no_resucita_un_unknown_del_modelo(self):
+        q = {"intent": "unknown", "reason": "ambigua"}
+        self.assertEqual(r.route("¿Cuándo fue la última vez que fui al Burger King?", q), q)
+
+    def test_apply_integra_la_ruta(self):
+        got = r.apply("¿Y el mes anterior?", {"intent": "top_merchants", "direction": "in", "period": "mes_pasado"})
+        self.assertEqual(got, {"intent": "unknown", "reason": "ambigua"})
 
 
 class DatasetTest(unittest.TestCase):
@@ -177,11 +240,15 @@ class DatasetTest(unittest.TestCase):
     def test_reglas_reconstruyen_los_campos_estructurales_del_dataset(self):
         failures = []
         for _, item in v.load(Path(v.HERE) / "questions.jsonl"):
+            if item.get("split") == "fresh":  # conjunto de medición final: no se usa para diseñar reglas
+                continue
             expected = item["expected"]
             if expected["intent"] in ("unknown", "balance"):
                 continue
             from_model = {k: x for k, x in expected.items() if k in self.OWNED}
             got = r.apply(item["question"], from_model)
+            if got["intent"] != expected["intent"]:
+                failures.append(f"{item['id']} intent: esperado {expected['intent']!r}, reglas {got['intent']!r}")
             for key in ("direction", "period", "compare_period", "min_amount", "max_amount", "sort", "limit"):
                 default = "out" if key == "direction" and expected["intent"] in ("top_merchants", "recurring") else None
                 want = expected.get(key, default)
@@ -192,3 +259,14 @@ class DatasetTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoFalsePositivesTest(unittest.TestCase):
+    def test_forced_unknown_solo_en_preguntas_unknown(self):
+        for _, item in v.load(Path(v.HERE) / "questions.jsonl"):
+            if item.get("split") == "fresh":
+                continue
+            forced = r.forced_unknown(item["question"])
+            if forced is not None:
+                self.assertEqual(item["expected"]["intent"], "unknown", item["id"])
+                self.assertEqual(forced["reason"], item["expected"]["reason"], item["id"])

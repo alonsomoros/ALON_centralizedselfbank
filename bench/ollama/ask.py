@@ -29,7 +29,7 @@ Hoy es {today}.
 
 intent: aggregate (sumar o contar), list_transactions (listar movimientos), last_transaction (el último), balance (saldo), compare_periods (comparar dos periodos), top_merchants (ranking de comercios o sitios), recurring (cargos periódicos, suscripciones), unknown (no es sobre movimientos, es ambigua, pide análisis o consejos, o pide operar).
 direction: out si habla de gastar, pagar o comprar; in si habla de ingresar o cobrar. Si no queda claro, omítelo.
-period y compare_period (el de referencia, solo en compare_periods): hoy, ayer, este_mes, mes_pasado, esta_semana, semana_pasada, este_trimestre, este_ano, ano_pasado, ultimos_7_dias, ultimos_15_dias, ultimos_30_dias, ultimos_90_dias, ultimos_365_dias, o un mes (enero…diciembre). Sin periodo en la pregunta, no pongas period.
+period y compare_period (el de referencia, solo en compare_periods): hoy, ayer, este_mes, mes_pasado, esta_semana, semana_pasada, este_trimestre, trimestre_pasado, este_ano, ano_pasado, ultimos_7_dias, ultimos_15_dias, ultimos_30_dias, ultimos_90_dias, ultimos_365_dias, o un mes (enero…diciembre). Sin periodo en la pregunta, no pongas period.
 text: el comercio o concepto que nombra el usuario (Mercadona, Netflix). Si nombra un comercio, usa text y NO pongas category.
 category: solo si la pregunta nombra un tipo de gasto claro: supermercado, restaurantes, transporte, ocio_suscripciones, salud, compras, hogar_facturas, viajes, efectivo, comisiones, bizum, transferencias, otros.
 group_by: solo si piden un desglose (por categorías, por mes). limit: solo si piden un número o "el más…" (limit 1). sort: amount_desc para mayor o más caro, date_desc para últimos o recientes.

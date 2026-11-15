@@ -23,6 +23,8 @@ class PeriodTest(unittest.TestCase):
     def test_semana_pasada(self): self.assertEqual(iso("semana_pasada"), ("2026-11-02", "2026-11-08"))
     def test_este_trimestre(self): self.assertEqual(iso("este_trimestre"), ("2026-10-01", "2026-11-15"))
     def test_trimestre_ultimo_dia(self): self.assertEqual(iso("este_trimestre", date(2026, 3, 31)), ("2026-01-01", "2026-03-31"))
+    def test_trimestre_pasado(self): self.assertEqual(iso("trimestre_pasado"), ("2026-07-01", "2026-09-30"))
+    def test_trimestre_pasado_cruza_de_ano(self): self.assertEqual(iso("trimestre_pasado", date(2027, 1, 10)), ("2026-10-01", "2026-12-31"))
     def test_este_ano(self): self.assertEqual(iso("este_ano"), ("2026-01-01", "2026-11-15"))
     def test_ano_pasado(self): self.assertEqual(iso("ano_pasado"), ("2025-01-01", "2025-12-31"))
     def test_ultimos_30_dias(self): self.assertEqual(iso("ultimos_30_dias"), ("2026-10-17", "2026-11-15"))

@@ -173,7 +173,7 @@ def run_one(model, item, use_format, think) -> dict:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
-    parser.add_argument("--split", choices=["dev", "test", "holdout", "blind", "all"], default="dev")
+    parser.add_argument("--split", choices=["dev", "test", "holdout", "fresh", "blind", "all"], default="dev")
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--no-format", action="store_true")
     parser.add_argument("--no-think", action="store_true")
@@ -184,7 +184,7 @@ def main(argv=None) -> int:
 
     items = [item for _, item in v.load(ask.CONSULTAS / "questions.jsonl")]
     parts = split.assign(items)
-    wanted = {"blind": ("test", "holdout"), "all": ("dev", "test", "holdout")}.get(args.split, (args.split,))
+    wanted = {"blind": ("test", "holdout"), "all": ("dev", "test", "holdout", "fresh")}.get(args.split, (args.split,))
     chosen = [i for i in items if parts[i["id"]] in wanted]
     if args.limit:
         chosen = chosen[: args.limit]
