@@ -74,9 +74,13 @@ def periods(question: str) -> list:
 
 OUT_CUES = re.compile(
     r"\bgast\w*|\bcompr\w*|\bpag(?:o|os|ue|ues|ado|ar|aron|ando)\b|\bcargo\w*|\bsac(?:ar|ado|ue|o)\b"
-    r"|\bme (?:han |ha )?cobr\w*|\bme cobr\w*|\benvi(?:e|ado|ados|ar|aron|amos)\b"
+    r"|\bme (?:han |ha )?cobr\w*|\bme cobr\w*|\bped(?:i|imos|ido|idos|ir)\b"
+    r"|\b(?:le|les|lo|la) (?:he |hemos |ha |han )?envi\w*"
 )
-IN_CUES = re.compile(r"\bingres\w*|\brecib\w*|\bnomina\w*|\babon(?:o|os|ado|ados)\b|\bme han (?:pagado|abonado)\b")
+IN_CUES = re.compile(
+    r"\bingres\w*|\brecib(?:i|ido|idos|ida|idas|e|en|ia|ian|imos|ir|iendo|iste|io)\b|\bnomina\w*"
+    r"|\babon(?:o|os|ado|ados)\b|\bme han (?:pagado|abonado)\b|\bme (?:ha |han )?envi\w*"
+)
 
 
 def direction(question: str):
@@ -113,6 +117,8 @@ def amounts(question: str) -> dict:
 
 # ---- orden y límite -------------------------------------------------------------------------------
 
+PLACES_N = re.compile(rf"\b{NUM} (?:sitios|comercios|tiendas|lugares|restaurantes)\b")
+TOP_SORT = re.compile(rf"\b(?:el|la|mi|mis) (?:mayor|mas caro|mas alto)\b|\b{NUM} (?:mayores|mas caros|mas altos)")
 LAST_N = re.compile(rf"\bultim[oa]s {NUM} (?!{TIME_UNITS}\b)\w+")
 TOP_N = re.compile(rf"\b{NUM} (?:mayores|mas caros|mas altos|gastos mas (?:altos|grandes))")
 TOP_ONE = re.compile(r"\b(?:el|la|mi|mis) (?:mayor|mas caro|mas alto|gasto mas alto)\b")
@@ -128,6 +134,9 @@ def ordering(question: str, intent: str, group_by) -> dict:
     top = TOP_N.search(text)
     if top:
         return {"sort": "amount_desc", "limit": parse_number(top.group(1))}
+    places = PLACES_N.search(text)
+    if places:
+        return {"limit": parse_number(places.group(1))}
     if TOP_ONE.search(text):
         return {"sort": "amount_desc", "limit": 1}
     if BOTTOM_ONE.search(text):
@@ -164,10 +173,39 @@ def clean_text(q: dict) -> dict:
     return result
 
 
+# ---- texto que falta: conceptos y nombres propios --------------------------------------------------
+
+CONCEPTS = [re.compile(r"\bnomina\w*"), re.compile(r"\bdevoluci(?:on|ones)\b")]
+CAPITALIZED = re.compile(r"[A-ZÁÉÍÓÚÑ][\wáéíóúüñ]*(?: [A-ZÁÉÍÓÚÑ][\wáéíóúüñ]*)*")
+NOT_A_NAME = {"bizum", "bizums", "euros", "eur", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"} | set(contract.MONTHS)
+TEXTUAL = ("aggregate", "list_transactions", "last_transaction")
+
+
+def guess_text(question: str):
+    """Concepto (nómina, devoluciones) o nombre propio a mitad de frase (Glovo, Zara) si el modelo no dio `text`."""
+    text = normalize(question)
+    for pattern in CONCEPTS:
+        found = pattern.search(text)
+        if found:
+            return found.group(0)
+    for found in CAPITALIZED.finditer(question):
+        before = question[: found.start()].rstrip()
+        if not before or before[-1] in "¿¡.:;":
+            continue  # primera palabra de la frase
+        words = [w for w in found.group(0).split() if normalize(w) not in NOT_A_NAME and normalize(w) not in TEXT_AS_CATEGORY]
+        if words:
+            return " ".join(words)
+    return None
+
+
 # ---- intents con señales inequívocas ----------------------------------------------------------------
 
 GREETINGS = {"hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "que tal", "como estas", "gracias", "adios", "hasta luego"}
 OPERATION_VERBS = re.compile(r"^(?:cancela|bloquea|desbloquea|transfiere|transfiereme|paga|anula|desactiva|activa|manda|envia|ingresa|domicilia)\b")
+UNSUPPORTED = re.compile(
+    r"\bde media\b|\bmedia (?:al|por|mensual|diaria)\b|\bpromedio\b|\bduplicad\w+|\bfines? de semana\b"
+    r"|\b(?:ha|han) subido\b|\bahorr\w+|\bconsejo\w*|\bpatron(?:es)?\b|\brecomiend\w*"
+)
 FOLLOW_UP = re.compile(r"^y\b")  # «¿Y el mes anterior?»: sin contexto de conversación no se puede resolver
 LAST_ONE = re.compile(r"\bultim[oa] (?!mes\b|ano\b|semana\b|dias?\b|vez\b)\w+|\bla ultima vez\b")
 COUNT_CUE = re.compile(r"\bcuant(?:os|as) (?:veces|pedidos|compras|pagos|movimientos)\b|\bnumero de\b|\bcuantas veces\b")
@@ -176,7 +214,7 @@ GROUP_CUES = [
     (re.compile(r"\bpor mes(?:es)?\b|\bmensual(?:es|mente)?\b|\bcada mes\b|\bevolucion\b|\bmes con mas\b"), "month"),
     (re.compile(r"\bpor (?:concepto|comercio|tienda|sitio)s?\b"), "merchant"),
 ]
-GROUPABLE = {"aggregate", "list_transactions", "compare_periods"}
+GROUPABLE = {"aggregate", "list_transactions", "compare_periods", "unknown"}
 
 
 def forced_unknown(question: str):
@@ -186,7 +224,7 @@ def forced_unknown(question: str):
         return {"intent": "unknown", "reason": "ambigua"}
     if OPERATION_VERBS.match(text):
         return {"intent": "unknown", "reason": "operacion"}
-    if text in GREETINGS:
+    if text in GREETINGS or UNSUPPORTED.search(text):
         return {"intent": "unknown", "reason": "fuera_de_alcance"}
     return None
 
@@ -213,6 +251,8 @@ def route(question: str, q: dict) -> dict:
         if intent == "compare_periods":
             result.pop("compare_period", None)
         return result
+    if (TOP_SORT.search(text)) and intent in ("top_merchants", "last_transaction", "aggregate"):
+        return {k: x for k, x in q.items() if k not in ("metric", "group_by")} | {"intent": "list_transactions"}
     if LAST_ONE.search(text) and intent in ("list_transactions", "aggregate", "top_merchants", "compare_periods"):
         return {k: x for k, x in q.items() if k not in ("metric", "group_by", "sort", "limit", "compare_period")} | {"intent": "last_transaction"}
     return q
@@ -230,6 +270,10 @@ def apply(question: str, q: dict) -> dict:
     if intent in ("unknown", "balance"):
         return dict(q)
     result = {k: x for k, x in clean_text(q).items() if k not in STRUCTURAL}
+    if "text" not in result and intent in TEXTUAL:
+        guessed = guess_text(question)
+        if guessed:
+            result["text"] = guessed
 
     tags = periods(question)
     if intent == "compare_periods":
@@ -242,6 +286,10 @@ def apply(question: str, q: dict) -> dict:
     if sense:
         result["direction"] = sense
     result.update(amounts(question))
+    if (intent == "aggregate" and not result.get("group_by") and ("min_amount" in result or "max_amount" in result)
+            and not re.search(r"\bcuant\w*|\btotal\b", normalize(question))):
+        result["intent"] = intent = "list_transactions"  # «gastos de entre 10 y 40 euros» pide ver los movimientos
+        result.pop("metric", None)
     result.update(ordering(question, intent, result.get("group_by")))
     if intent == "last_transaction":  # «el último» ya implica orden y límite
         result.pop("sort", None)

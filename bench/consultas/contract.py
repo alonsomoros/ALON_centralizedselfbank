@@ -48,8 +48,10 @@ KEYWORDS = [
     (re.compile(r"\bsupermercados?\b", re.I), "supermercado"),
     (re.compile(r"\bocio\b", re.I), "ocio_suscripciones"),
     (re.compile(r"\bgasolina\b|\bgasolinera\b", re.I), "transporte"),
+    (re.compile(r"\bfarmacias?\b|\bm[eé]dic[oa]s?\b|\bdentistas?\b|\bcl[ií]nicas?\b|\bhospital(?:es)?\b|\boculista\b", re.I), "salud"),
+    (re.compile(r"\bluz\b|\bagua\b|\balquiler\b|\bhipoteca\b|\bwifi\b|\binternet\b", re.I), "hogar_facturas"),
 ]
-REFINABLE = {"aggregate", "list_transactions", "last_transaction", "top_merchants", "recurring"}
+REFINABLE = {"aggregate", "list_transactions", "last_transaction", "top_merchants", "recurring", "compare_periods"}
 
 
 def month_bounds(year: int, month: int):

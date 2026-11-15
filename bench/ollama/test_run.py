@@ -50,8 +50,20 @@ class ScoreTest(unittest.TestCase):
 
     def test_incoherente_cuenta_como_intent_pero_no_como_esquema(self):
         s = run.score(ITEM, reply(intent="aggregate", period="octubre"))  # falta metric
-        self.assertTrue(s["json_ok"] and s["intent_ok"])
-        self.assertFalse(s["schema_ok"] or s["exact"])
+        self.assertTrue(s["json_ok"] and s["model_intent_ok"])
+        self.assertFalse(s["schema_ok"] or s["intent_ok"] or s["exact"])  # el sistema responde «no te he entendido»
+
+    def test_salida_invalida_en_pregunta_unknown_es_correcta(self):
+        item = {"id": "o", "today": "2026-11-15", "question": "¿Qué opinas del tiempo?",
+                "expected": {"intent": "unknown", "reason": "fuera_de_alcance"}}
+        s = run.score(item, reply(intent="compare_periods", metric="sum"))  # incoherente
+        self.assertFalse(s["schema_ok"])
+        self.assertTrue(s["intent_ok"] and s["exact"])
+
+    def test_el_texto_no_distingue_tildes(self):
+        item = {"id": "n", "today": "2026-11-15", "question": "¿Cuándo cobré la nómina?",
+                "expected": {"intent": "last_transaction", "text": "nómina", "direction": "in"}}
+        self.assertTrue(run.score(item, reply(intent="last_transaction"))["exact"])
 
     def test_palabra_clave_completa_la_categoria(self):
         item = {"id": "b", "today": "2026-11-15", "question": "¿Cuál fue mi último Bizum?",

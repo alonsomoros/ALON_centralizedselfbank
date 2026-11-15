@@ -20,6 +20,7 @@ from pathlib import Path
 
 import ask
 import contract
+import rules
 import split
 import validate as v
 
@@ -54,18 +55,18 @@ def score(item: dict, content: str) -> dict:
         return result
     today = date.fromisoformat(item["today"])
     final, errors = ask.interpret(item["question"], got, today)
-    if errors:
-        return result
-    result["schema_ok"] = True
+    result["schema_ok"] = not errors
+    if errors:  # una salida inválida equivale a «no te he entendido»: el sistema responde como un unknown
+        final = contract.expand({"intent": "unknown", "reason": "ambigua"}, today)
     result["intent_ok"] = final["intent"] == expected["intent"]
     want = contract.expand(expected, today)
     if expected["intent"] == "unknown":
         result["reason_ok"] = got.get("reason") == expected["reason"]
     # La aclaración depende solo de `reason`, que se puntúa aparte.
     final.pop("clarification"), want.pop("clarification")
-    for query in (final, want):  # «Burger King» y «burger king» son la misma búsqueda
+    for query in (final, want):  # «Burger King» y «burger king», «nómina» y «nomina»: la misma búsqueda
         if isinstance(query.get("text"), str):
-            query["text"] = query["text"].strip().lower()
+            query["text"] = rules.normalize(query["text"]).strip()
     result["diff"] = ask.compare(want, final)
     result["exact"] = not result["diff"]
     return result

@@ -122,6 +122,26 @@ class ExpandTest(unittest.TestCase):
         self.assertEqual(q, {"intent": "aggregate", "metric": "sum", "period": "este_mes"})
 
 
+class KeywordsOnDatasetTest(unittest.TestCase):
+    def test_las_palabras_clave_no_chocan_con_el_dataset(self):
+        import json
+        from pathlib import Path
+        clashes = []
+        for line in (Path(c.__file__).parent / "questions.jsonl").read_text(encoding="utf-8").splitlines():
+            item = json.loads(line)
+            got = c.refine(item["question"], item["expected"]).get("category")
+            if got != item["expected"].get("category"):
+                clashes.append((item["id"], got, item["expected"].get("category")))
+        self.assertEqual(clashes, [])
+
+    def test_salud_y_hogar(self):
+        for question, category in (("gastos en farmacia", "salud"), ("fui al médico", "salud"), ("¿Cuánto pagué de luz y agua?", "hogar_facturas")):
+            self.assertEqual(c.refine(question, {"intent": "aggregate"})["category"], category, question)
+
+    def test_tambien_en_comparaciones(self):
+        self.assertEqual(c.refine("¿Gasté más en gasolina en septiembre?", {"intent": "compare_periods"})["category"], "transporte")
+
+
 class SanitizeTest(unittest.TestCase):
     def test_quita_reason_fuera_de_unknown(self):
         self.assertEqual(c.sanitize({"intent": "list_transactions", "reason": "ambigua", "limit": 5}),
@@ -197,7 +217,7 @@ class RefineTest(unittest.TestCase):
             self.assertEqual(c.refine(question, {"intent": "aggregate"})["category"], category, question)
 
     def test_no_actua_en_unknown_ni_balance(self):
-        for intent in ("unknown", "balance", "compare_periods"):
+        for intent in ("unknown", "balance"):
             self.assertNotIn("category", c.refine("bizum", {"intent": intent}))
 
     def test_sin_palabra_clave_no_cambia(self):

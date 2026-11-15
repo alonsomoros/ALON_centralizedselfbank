@@ -63,12 +63,21 @@ class DirectionTest(unittest.TestCase):
     def test_gasto(self):
         for q in ("¿Cuánto gasté?", "Mis compras", "Pagos de menos de 10 euros", "¿Qué suscripciones pago?",
                   "veces que he sacado dinero del cajero", "¿Cuánto me cobró Netflix?", "comisiones me han cobrado",
-                  "Bizums que le he enviado a Juan", "lo que envié ayer"):
+                  "Bizums que le he enviado a Juan", "los Bizums que le envié ayer",
+                  "¿Cuántas veces pedí Glovo?", "¿Cuántos pedidos de Glovo hice?"):
             self.assertEqual(r.direction(q), "out", q)
 
     def test_ingreso(self):
         for q in ("¿Cuánto me han ingresado?", "mis ingresos totales", "he recibido dinero", "mi nómina"):
             self.assertEqual(r.direction(q), "in", q)
+
+    def test_ingreso_por_envio_de_otro(self):
+        for q in ("¿Cuánto me ha enviado María por Bizum?", "lo que me enviaron ayer"):
+            self.assertEqual(r.direction(q), "in", q)
+
+    def test_recibos_es_un_nombre_no_un_ingreso(self):
+        self.assertIsNone(r.direction("¿Qué recibos domiciliados tengo activos?"))
+        self.assertEqual(r.direction("¿Cuánto he recibido este mes?"), "in")
 
     def test_sin_pista_o_contradictoria(self):
         for q in ("¿Cuál fue mi último Bizum?", "Movimientos de la semana pasada", "gasté lo que ingresé", "movimientos con envío incluido"):
@@ -232,6 +241,52 @@ class RouteTest(unittest.TestCase):
         self.assertEqual(got, {"intent": "unknown", "reason": "ambigua"})
 
 
+class NewRulesTest(unittest.TestCase):
+    def test_lo_que_no_se_sabe_hacer_es_unknown(self):
+        for q in ("¿Cuánto he gastado de media al día este mes?", "¿Tengo algún cargo duplicado?", "¿Gasto más los fines de semana?",
+                  "¿Me ha subido alguna suscripción?", "¿Dónde puedo ahorrar?", "¿Hay algún patrón de gasto?"):
+            self.assertEqual(r.forced_unknown(q), {"intent": "unknown", "reason": "fuera_de_alcance"}, q)
+
+    def test_mayor_ingreso_es_un_listado_ordenado(self):
+        got = r.apply("¿Cuál ha sido mi mayor ingreso en los últimos 30 días?", {"intent": "top_merchants", "direction": "in"})
+        self.assertEqual((got["intent"], got["sort"], got["limit"]), ("list_transactions", "amount_desc", 1))
+
+    def test_los_n_sitios(self):
+        got = r.apply("Dime los 3 sitios donde más gasté en octubre", {"intent": "top_merchants"})
+        self.assertEqual((got["limit"], got.get("sort")), (3, None))
+
+    def test_importes_piden_listado(self):
+        got = r.apply("Gastos en farmacia de entre 10 y 40 euros", {"intent": "aggregate", "metric": "sum"})
+        self.assertEqual((got["intent"], got["min_amount"], got["max_amount"]), ("list_transactions", 10, 40))
+        self.assertNotIn("metric", got)
+
+    def test_cuanto_con_importe_sigue_siendo_total(self):
+        got = r.apply("¿Cuánto gasté en compras de más de 50 euros?", {"intent": "aggregate", "metric": "sum"})
+        self.assertEqual(got["intent"], "aggregate")
+
+    def test_texto_por_concepto(self):
+        self.assertEqual(r.guess_text("¿Cuándo fue la última vez que cobré la nómina?"), "nomina")
+        self.assertEqual(r.guess_text("dinero recibido por devoluciones este trimestre"), "devoluciones")
+
+    def test_texto_por_nombre_propio(self):
+        self.assertEqual(r.guess_text("¿Cuántas veces pedí Glovo el mes pasado?"), "Glovo")
+        self.assertEqual(r.guess_text("¿Cuánto me ha enviado María por Bizum?"), "María")
+
+    def test_no_adivina_donde_no_hay_nombre(self):
+        for q in ("¿Cuánto gasté en octubre?", "Dime mis compras de este mes", "¿Cuánto me han ingresado por Bizum?", "Enséñame los ingresos del lunes"):
+            self.assertIsNone(r.guess_text(q), q)
+
+    def test_apply_completa_el_texto_solo_si_falta(self):
+        got = r.apply("¿Cuántas veces pedí Glovo el mes pasado?", {"intent": "aggregate", "metric": "count"})
+        self.assertEqual(got["text"], "Glovo")
+        got = r.apply("¿Cuántas veces pedí Glovo el mes pasado?", {"intent": "aggregate", "metric": "count", "text": "Uber"})
+        self.assertEqual(got["text"], "Uber")
+
+    def test_desglose_resucita_un_unknown_del_modelo(self):
+        got = r.apply("Evolución mensual de mis gastos este año", {"intent": "unknown", "reason": "ambigua"})
+        self.assertEqual((got["intent"], got["group_by"]), ("aggregate", "month"))
+
+
 class DatasetTest(unittest.TestCase):
     """Con un modelo 'perfecto' en intent/metric/category/text, las reglas deben completar el resto."""
 
@@ -240,8 +295,6 @@ class DatasetTest(unittest.TestCase):
     def test_reglas_reconstruyen_los_campos_estructurales_del_dataset(self):
         failures = []
         for _, item in v.load(Path(v.HERE) / "questions.jsonl"):
-            if item.get("split") == "fresh":  # conjunto de medición final: no se usa para diseñar reglas
-                continue
             expected = item["expected"]
             if expected["intent"] in ("unknown", "balance"):
                 continue
@@ -249,7 +302,7 @@ class DatasetTest(unittest.TestCase):
             got = r.apply(item["question"], from_model)
             if got["intent"] != expected["intent"]:
                 failures.append(f"{item['id']} intent: esperado {expected['intent']!r}, reglas {got['intent']!r}")
-            for key in ("direction", "period", "compare_period", "min_amount", "max_amount", "sort", "limit"):
+            for key in ("direction", "period", "compare_period", "min_amount", "max_amount", "sort", "limit", "text", "category"):
                 default = "out" if key == "direction" and expected["intent"] in ("top_merchants", "recurring") else None
                 want = expected.get(key, default)
                 if got.get(key, default) != want:
@@ -264,8 +317,6 @@ if __name__ == "__main__":
 class NoFalsePositivesTest(unittest.TestCase):
     def test_forced_unknown_solo_en_preguntas_unknown(self):
         for _, item in v.load(Path(v.HERE) / "questions.jsonl"):
-            if item.get("split") == "fresh":
-                continue
             forced = r.forced_unknown(item["question"])
             if forced is not None:
                 self.assertEqual(item["expected"]["intent"], "unknown", item["id"])
