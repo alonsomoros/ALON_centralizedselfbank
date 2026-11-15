@@ -3,10 +3,10 @@
 Uso:  python validate.py [questions.jsonl]
 
 Comprueba, para cada línea del dataset:
-  1. que `expected` (consulta del modelo, v2) cumple schema.json,
+  1. que `expected` (consulta del modelo, v2) cumple model.schema.json,
   2. coherencia por intent (contract.model_errors),
   3. que al expandirla (contract.expand) resulta una consulta completa que cumple
-     resolved.schema.json y las reglas semánticas del ejecutor.
+     resolved.schema.json (ambos en selfbank/) y las reglas semánticas del ejecutor.
 """
 
 import json
@@ -20,8 +20,8 @@ HERE = Path(__file__).parent
 import _path  # noqa: E402,F401  (raíz del repo en sys.path)
 from selfbank import contract  # noqa: E402
 
-SCHEMA = json.loads((HERE / "schema.json").read_text(encoding="utf-8"))
-RESOLVED_SCHEMA = json.loads((HERE / "resolved.schema.json").read_text(encoding="utf-8"))
+SCHEMA = contract.load_schema(contract.MODEL_SCHEMA_PATH)
+RESOLVED_SCHEMA = contract.load_schema(contract.RESOLVED_SCHEMA_PATH)
 
 from selfbank.schema import check  # noqa: E402,F401  (mismo comprobador que usa la API)
 

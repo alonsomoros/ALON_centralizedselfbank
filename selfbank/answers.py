@@ -67,7 +67,7 @@ def _aggregate(q, r):
         is_count = q["metric"] == "count"
         if not rows:
             return _none(f"No hay movimientos{_tail(q)}.")
-        first = rows[0]
+        first = max(rows, key=lambda row: row["amount"])
         shown = _group_label(q, first["group"])
         amount = f"{first['amount']:g}" if is_count else d.money(first["amount"])
         if q.get("limit") == 1:

@@ -10,8 +10,19 @@ Solo biblioteca estándar.
 
 import calendar
 import copy
+import json
 import re
+from pathlib import Path
 from datetime import date, timedelta
+
+HERE = Path(__file__).parent
+MODEL_SCHEMA_PATH = HERE / "model.schema.json"        # lo que emite el modelo (compacto)
+RESOLVED_SCHEMA_PATH = HERE / "resolved.schema.json"  # consulta completa para el ejecutor
+
+
+def load_schema(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
 
 MONTHS = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -95,7 +106,7 @@ def resolve_period(tag: str, today: date):
 
 
 def model_errors(q: dict) -> list:
-    """Coherencia de la consulta del modelo (la forma ya se valida con schema.json)."""
+    """Coherencia de la consulta del modelo (la forma ya se valida con model.schema.json)."""
     errors = []
     intent = q.get("intent")
     present = {k for k in MODEL_FIELDS if q.get(k) is not None}

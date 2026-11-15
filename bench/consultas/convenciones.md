@@ -4,8 +4,8 @@ Contrato entre el modelo (que traduce) y el ejecutor (que calcula). Hay **dos fo
 
 | Forma | Quién la usa | Fichero | Cómo es |
 | :--- | :--- | :--- | :--- |
-| **Del modelo** | salida de Ollama | `schema.json` | compacta: solo `intent` es obligatorio; los campos sin valor se **omiten** (nada de `null`) |
-| **Completa** | el ejecutor SQL | `resolved.schema.json` | siempre los 15 campos; lo que no aplica va a `null`, con fechas ISO |
+| **Del modelo** | salida de Ollama | `selfbank/model.schema.json` | compacta: solo `intent` es obligatorio; los campos sin valor se **omiten** (nada de `null`) |
+| **Completa** | el ejecutor SQL | `selfbank/resolved.schema.json` | siempre los 15 campos; lo que no aplica va a `null`, con fechas ISO |
 
 `contract.py` convierte una en otra (`expand`). **El modelo nunca calcula fechas ni redacta texto**: solo elige etiquetas y valores de listas cerradas.
 
@@ -16,7 +16,7 @@ Contrato entre el modelo (que traduce) y el ejecutor (que calcula). Hay **dos fo
 - **Categorías inequívocas por palabra clave** (`refine`): si el modelo no puso categoría y la pregunta dice *Bizum*, *cajero* / *sacar dinero*, o *comisión(es)*, se pone `bizum`, `efectivo` o `comisiones`. Nunca pisa la categoría del modelo, ni actúa en `unknown`, `balance` ni `compare_periods`.
 
 ## Tubería de la consulta del modelo
-`forma (schema.json)` → `sanitize` → `model_errors` → `refine` → `expand`.
+`forma (model.schema.json)` → `sanitize` → `model_errors` → `refine` → `expand`.
 - **`sanitize`** ignora los campos que no corresponden al intent (p. ej. `reason` fuera de `unknown`, `compare_period` fuera de `compare_periods`). No inventa ni corrige valores: si falta un campo obligatorio, sigue siendo un error y se pide reformular.
 - **Valores por defecto** (`expand`): `direction` = `any`, salvo `top_merchants` y `recurring`, que son siempre gastos (`out`) si el modelo no dice otra cosa; `compare_periods` sin `metric` = `sum`; `top_merchants` implica `group_by: merchant`.
 

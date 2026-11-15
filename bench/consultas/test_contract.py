@@ -44,7 +44,7 @@ class PeriodTest(unittest.TestCase):
     def test_todas_las_etiquetas_del_esquema_resuelven(self):
         import json
         from pathlib import Path
-        schema = json.loads((Path(__file__).parent / "schema.json").read_text(encoding="utf-8"))
+        schema = c.load_schema(c.MODEL_SCHEMA_PATH)
         for field in ("period", "compare_period"):
             self.assertEqual(sorted(schema["properties"][field]["enum"]), sorted(c.PERIODS))
         for tag in c.PERIODS:
