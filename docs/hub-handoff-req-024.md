@@ -45,7 +45,7 @@ Consecuencia: las fases 2 (comandos y atajos) y 3 (lenguaje natural) de REQ-024 
 ## Lo que queda por hacer en `selfbank` (no es trabajo del hub)
 
 - Escuchar en la dirección elegida en el punto 2 y dejar el servicio como unidad `systemd` (hoy se lanza con un script).
-- Sincronización periódica (4 al día) y aviso de caducidad del consentimiento a 14 días: sin ella, los datos son los del 15-nov-2026.
+- Sincronización periódica (4 al día) y aviso de caducidad del consentimiento a 14 días: implementada el 16-nov-2026, pendiente de desplegar (`docs/despliegue-sync.md`); sin ella, los datos son los del 15-nov-2026.
 - Cifrado en reposo de la base.
 
 ## Orden sugerido

@@ -40,7 +40,8 @@ python -m unittest discover -s bench/ollama
 python3 -m selfbank.tools.ingest_cli --raw-dir ~/.selfbank/raw/prod --session ~/.selfbank/session-prod.json --db ~/.selfbank/selfbank.db
 python3 -m selfbank.tools.categorize_wizard              # clasificar comercios (en tu terminal)
 python3 -m selfbank.tools.system_check --db ~/.selfbank/selfbank.db --raw-dir ~/.selfbank/raw/prod [--llm]
-bash ~/run-selfbank-real.sh                              # servicio real en 127.0.0.1:8789 (token en ~/.selfbank/api-token)
+bash ~/run-selfbank-real.sh                              # servicio real en 127.0.0.1:8789 (token en ~/.selfbank/api-token); en la Pi corre como selfbank-real.service
+python3 -m selfbank.tools.sync_cli                       # sincroniza con el banco (lo lanza selfbank-sync.timer 4 veces al día; docs/despliegue-sync.md)
 
 # desarrollo de la pantalla: servidor simulado sin datos reales
 python -m selfbank.api.mock --port 8788 --token dev-token
@@ -64,11 +65,13 @@ python -m selfbank.api.mock --port 8788 --token dev-token
     describe.py answers.py  interpretación visible y plantillas de respuesta (el modelo nunca redacta)
     schema.py text.py suggestions.py
     api/            servidor HTTP, esquemas del contrato, servicio real (serve) y simulado (mock)
-    tools/          ingest_cli, recategorize, categorize_wizard, system_check, oracle
+    bank.py sync.py   cliente mínimo de Enable Banking y sincronización periódica (tools/sync_cli.py)
+    tools/          ingest_cli, sync_cli, recategorize, categorize_wizard, system_check, oracle
     model.schema.json resolved.schema.json   lo que emite el modelo y la consulta completa
 /tests/             pruebas del paquete, la API, el motor y las herramientas (datos sintéticos)
 /bench/             dataset de preguntas, validador, runner y pruebas que dependen del dataset
-/docs/              informes de Fase 0, decisiones, contrato de la API y datos y consultas
+/docs/              informes de Fase 0, decisiones, contrato de la API, datos y consultas y despliegue de la sincronización
+/deploy/            unidades de systemd de la sincronización (service y timer)
 ```
 
 Las carpetas se crean cuando se necesitan.

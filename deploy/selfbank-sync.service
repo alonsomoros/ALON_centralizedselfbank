@@ -1,0 +1,30 @@
+# Sincronización con el banco: una ejecución (la lanza selfbank-sync.timer). Se instala en /etc/systemd/system/.
+# Hace peticiones SOLO a api.enablebanking.com y escribe SOLO en ~/.selfbank. Imprime contadores, nunca movimientos.
+# Códigos de salida de sync_cli: 0 bien, 1 fallo, 2 falta sesión o clave, 3 consentimiento caducado.
+
+[Unit]
+Description=selfbank: sincronizar movimientos con el banco
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=alonso
+WorkingDirectory=/home/alonso/selfbank-dev
+ExecStart=/usr/bin/python3 -B -m selfbank.tools.sync_cli
+TimeoutStartSec=10min
+Nice=10
+MemoryMax=300M
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/alonso/.selfbank
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+LockPersonality=true

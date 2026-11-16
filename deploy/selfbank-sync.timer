@@ -1,0 +1,14 @@
+# 4 sincronizaciones al día (el límite de PSD2 para accesos sin el usuario delante). Se instala junto a selfbank-sync.service.
+# Persistent=true: si la Pi estaba apagada a la hora prevista, sincroniza al arrancar.
+
+[Unit]
+Description=selfbank: sincronización con el banco 4 veces al día
+
+[Timer]
+OnCalendar=*-*-* 02,08,14,20:20:00
+RandomizedDelaySec=10min
+Persistent=true
+Unit=selfbank-sync.service
+
+[Install]
+WantedBy=timers.target
