@@ -1,6 +1,6 @@
 # Sincronización periódica con el banco
 
-Estado a 16-nov-2026: implementada y probada con datos sintéticos (`tests/test_sync.py`); **sin desplegar**. Hasta desplegarla, los datos son los de la última importación manual.
+Estado a 16-nov-2026: implementada, probada con datos sintéticos (`tests/test_sync.py`) y **desplegada** (`selfbank-sync.timer` activo en la Pi; código por Git en `~/selfbank-dev`). La primera ejecución real falló: Santander respondió `400 ASPSP_ERROR «Internal server error»` a `GET /accounts/{uid}/transactions`, tanto con `date_from` como con `strategy=longest` (la petición que sí funcionó el 15-nov), por lo que es un fallo del lado del banco y no del job. No se escribió nada en la base: los datos siguen siendo los del 15-nov hasta que una ejecución salga bien. Si el error persiste más de un día, probablemente haya que volver a autorizar el consentimiento.
 
 ## Qué hace
 
